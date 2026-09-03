@@ -35,7 +35,6 @@ function formatPrice(price?: number) {
 export function RoleSplitHome({ packages, backendReady, hasDraft, onWorker, onOrganisation }: RoleSplitHomeProps) {
   const orderedPackages = [...packages].sort((a, b) => packageOrder.indexOf(a.code) - packageOrder.indexOf(b.code));
   const serviceText = backendReady === false ? "Verification service unavailable" : backendReady ? "Verification service online" : "Checking verification service";
-
   const [tilt, setTilt] = useState({ rotateX: 0, rotateY: 0, scale: 1, active: false });
 
   useEffect(() => {
@@ -76,72 +75,78 @@ export function RoleSplitHome({ packages, backendReady, hasDraft, onWorker, onOr
   return (
     <div className="landing-page">
       <header className="landing-header">
-        <Brand />
-        <span className={`service-state ${backendReady === false ? "is-offline" : ""}`} title={serviceText} aria-label={serviceText}>
-          <i aria-hidden="true" />
-        </span>
+        <div className="landing-header-inner">
+          <Brand />
+          <nav className="landing-nav" aria-label="Main navigation">
+            <a href="#how-it-works">How it works</a>
+            <a href="#packages">Packages</a>
+            <button type="button" onClick={onOrganisation}>For organisations</button>
+          </nav>
+          <div className="landing-header-actions">
+            <span className={`service-state ${backendReady === false ? "is-offline" : ""}`} title={serviceText} aria-label={serviceText}>
+              <i aria-hidden="true" />
+            </span>
+            <button className="header-cta" type="button" onClick={onWorker}>Start verification <span aria-hidden="true">→</span></button>
+          </div>
+        </div>
       </header>
 
       <main id="main">
         <section className="landing-hero" aria-labelledby="landing-title">
-          <div className="landing-hero-copy scroll-reveal">
-            <h1 id="landing-title">Get verified once.<br />Work <em>anywhere.</em></h1>
-            <p className="landing-lead">One application covers every check your work needs. The result is a credential you keep for twelve months.</p>
+          <div className="landing-hero-copy">
+            <h1 id="landing-title">
+              <span>A trusted identity for</span>
+              <span>India&apos;s <em>gig</em></span>
+              <span><em>economy.</em></span>
+            </h1>
+            <p className="landing-lead">LIWIP brings identity, background and work checks into one portable verification that workers can carry across platforms.</p>
+            <div className="hero-actions">
+              <button className="hero-action hero-action-primary" type="button" onClick={onWorker}>Start verification <span aria-hidden="true">→</span></button>
+              <a className="hero-action hero-action-secondary" href="#how-it-works">See how it works</a>
+            </div>
+            {hasDraft && <button className="continue-link" type="button" onClick={onWorker}>Already started? <span>Continue where you left off</span></button>}
+          </div>
+        </section>
 
+        <section className="role-section" aria-labelledby="role-title">
+          <div className="role-section-copy scroll-reveal">
+            <p className="section-label">Choose your path</p>
+            <h2 id="role-title">One credential.<br />Two ways to begin.</h2>
+            <p>Workers can verify themselves. Organisations can invite and verify their workforce at scale.</p>
             <div className="role-choices" aria-label="Choose how to continue">
               <button className="role-choice" type="button" onClick={onWorker}>
-                <span className="role-icon" aria-hidden="true">
-                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
-                    <rect x="3" y="4" width="18" height="16" rx="2" />
-                    <circle cx="12" cy="10" r="3" />
-                    <path d="M7 17c0-2 2.2-3.5 5-3.5s5 1.5 5 3.5" />
-                  </svg>
-                </span>
+                <span className="role-number" aria-hidden="true">01</span>
                 <span className="role-copy"><strong>{t("home.worker")}</strong><small>Delivery, driving, home services or security</small></span>
                 <span className="role-status status-available">{t("home.available")}</span>
                 <span className="role-arrow" aria-hidden="true">→</span>
               </button>
               <button className="role-choice" type="button" onClick={onOrganisation}>
-                <span className="role-icon role-icon-muted" aria-hidden="true">
-                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
-                    <rect x="4" y="2" width="16" height="20" rx="2" />
-                    <path d="M9 22v-4h6v4" />
-                    <path d="M8 6h.01M12 6h.01M16 6h.01M8 10h.01M12 10h.01M16 10h.01M8 14h.01M12 14h.01M16 14h.01" />
-                  </svg>
-                </span>
+                <span className="role-number" aria-hidden="true">02</span>
                 <span className="role-copy"><strong>{t("home.organisation")}</strong><small>Verify workers at scale with role-based packages</small></span>
                 <span className="role-status status-soon">{t("home.soon")}</span>
                 <span className="role-arrow" aria-hidden="true">→</span>
               </button>
             </div>
-
-            <button className="continue-link" type="button" onClick={onWorker}>Already started? <span>Continue where you left off</span></button>
           </div>
 
-          <div className="landing-card-visual scroll-reveal" aria-label="Example LIWIP Gig Card">
-            <div
-              className="card-photo-crop"
-              onMouseMove={handleCardMouseMove}
-              onMouseLeave={handleCardMouseLeave}
-              style={{
-                transform: `perspective(900px) rotateX(${tilt.rotateX}deg) rotateY(${tilt.rotateY}deg) scale(${tilt.scale})`,
-                transition: tilt.active ? "transform 100ms cubic-bezier(.2, .8, .3, 1)" : "transform 400ms ease-out"
-              }}
-            >
-              <Image
-                className="card-photo-source"
-                src="/liwip-gig-card.png"
-                alt="Example LIWIP verified gig worker card"
-                width={1798}
-                height={1376}
-                priority
-                sizes="(max-width: 900px) 92vw, 42vw"
-              />
+          <div className="landing-card-stage scroll-reveal" aria-label="LIWIP Gig Card preview">
+            <div className="landing-card-visual">
+              <div
+                className="card-photo-crop"
+                onMouseMove={handleCardMouseMove}
+                onMouseLeave={handleCardMouseLeave}
+                style={{
+                  transform: `perspective(900px) rotateX(${tilt.rotateX}deg) rotateY(${tilt.rotateY}deg) scale(${tilt.scale})`,
+                  transition: tilt.active ? "transform 100ms cubic-bezier(.2, .8, .3, 1)" : "transform 400ms ease-out"
+                }}
+              >
+                <Image className="card-photo-source" src="/liwip-gig-card.png" alt="Example LIWIP verified gig worker card" width={1798} height={1376} priority sizes="(max-width: 900px) 92vw, 38vw" />
+              </div>
             </div>
           </div>
         </section>
 
-        <section className="how-section" aria-labelledby="how-title">
+        <section className="how-section" id="how-it-works" aria-labelledby="how-title">
           <div className="section-intro section-intro-dark scroll-reveal">
             <p>How it works</p>
             <h2 id="how-title">Four steps, and you can stop at any point.</h2>
@@ -157,7 +162,7 @@ export function RoleSplitHome({ packages, backendReady, hasDraft, onWorker, onOr
           </div>
         </section>
 
-        <section className="package-section" aria-labelledby="packages-title">
+        <section className="package-section" id="packages" aria-labelledby="packages-title">
           <div className="section-intro scroll-reveal">
             <p>Packages</p>
             <h2 id="packages-title">Priced by the work,<br />not the person.</h2>

@@ -1,11 +1,18 @@
 import type { Metadata } from "next";
-import { Newsreader, Inter, Mukta } from "next/font/google";
+import { Fraunces, Inter, Mukta, Baloo_2 } from "next/font/google";
 import "./globals.css";
 
-const display = Newsreader({
+const brand = Baloo_2({
+  subsets: ["latin"],
+  weight: ["600", "700", "800"],
+  variable: "--font-brand",
+  display: "swap"
+});
+
+const display = Fraunces({
   subsets: ["latin"],
   style: ["normal", "italic"],
-  weight: ["400", "500", "600"],
+  weight: ["300", "400", "500", "600"],
   variable: "--font-display-face",
   display: "swap"
 });
@@ -36,7 +43,7 @@ export const viewport = {
 
 export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
   return (
-    <html lang="en" className={`${display.variable} ${ui.variable} ${deva.variable}`}>
+    <html lang="en" className={`${display.variable} ${ui.variable} ${deva.variable} ${brand.variable}`}>
       <body>
         <a className="skip-link" href="#main">Skip to main content</a>
         {children}
