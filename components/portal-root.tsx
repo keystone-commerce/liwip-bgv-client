@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import { WorkerPortal } from "./worker-portal";
 import { OrganisationNotice } from "./portal/organisation-notice";
-import { RoleSplitHome } from "./portal/role-split-home";
+import { EditorialHome } from "./portal/editorial-home";
 import { FALLBACK_PACKAGES } from "@/lib/worker-config";
 import type { VerificationPackage } from "@/lib/types";
 
@@ -16,17 +16,27 @@ export function PortalRoot() {
   const [hasDraft, setHasDraft] = useState(false);
 
   useEffect(() => {
-    const queryRole = new URLSearchParams(window.location.search).get("as");
-    const storedRole = sessionStorage.getItem("liwip-portal-role");
-    const nextRole: PortalRole = queryRole === "worker" || storedRole === "worker"
-      ? "worker"
-      : queryRole === "organisation" || storedRole === "organisation"
-        ? "organisation"
-        : null;
-    queueMicrotask(() => {
+    function syncRoleFromUrl() {
+      const queryRole = new URLSearchParams(window.location.search).get("as");
+      const storedRole = sessionStorage.getItem("liwip-portal-role");
+      const nextRole: PortalRole = queryRole === "worker"
+        ? "worker"
+        : queryRole === "organisation"
+          ? "organisation"
+          : storedRole === "worker" || storedRole === "organisation"
+            ? (storedRole as PortalRole)
+            : null;
       setRole(nextRole);
       setHasDraft(Boolean(sessionStorage.getItem("liwip-worker-draft")));
-    });
+    }
+
+    syncRoleFromUrl();
+
+    function handlePopState() {
+      syncRoleFromUrl();
+    }
+
+    window.addEventListener("popstate", handlePopState);
 
     fetch("/api/packages")
       .then(async (response) => {
@@ -38,6 +48,10 @@ export function PortalRoot() {
         setBackendReady(true);
       })
       .catch(() => setBackendReady(false));
+
+    return () => {
+      window.removeEventListener("popstate", handlePopState);
+    };
   }, []);
 
   function choose(nextRole: Exclude<PortalRole, null>) {
@@ -60,7 +74,7 @@ export function PortalRoot() {
   if (role === "organisation") return <OrganisationNotice onBack={goHome} onWorker={() => choose("worker")} />;
 
   return (
-    <RoleSplitHome
+    <EditorialHome
       packages={packages}
       backendReady={backendReady}
       hasDraft={hasDraft}
