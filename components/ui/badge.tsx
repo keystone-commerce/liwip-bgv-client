@@ -17,6 +17,11 @@ const badgeVariants = cva(
           "border-border text-foreground [a]:hover:bg-muted [a]:hover:text-muted-foreground",
         ghost: "hover:bg-muted hover:text-muted-foreground",
         link: "text-primary underline-offset-4 hover:underline",
+        verified: "border-state-verified-border bg-state-verified-bg text-state-verified",
+        review: "border-state-review-border bg-state-review-bg text-state-review",
+        fix: "border-state-fix-border bg-state-fix-bg text-state-fix",
+        checking: "border-state-checking-border bg-state-checking-bg text-state-checking",
+        queued: "border-state-queued-border bg-state-queued-bg text-state-queued",
       },
     },
     defaultVariants: {
