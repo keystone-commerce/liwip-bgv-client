@@ -1,33 +1,17 @@
 import type { Metadata } from "next";
-import { Fraunces, Inter, Mukta, Baloo_2 } from "next/font/google";
+import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
+import { cn } from "@/lib/utils";
 
-const brand = Baloo_2({
+const geist = Geist({
   subsets: ["latin"],
-  weight: ["600", "700", "800"],
-  variable: "--font-brand",
+  variable: "--font-geist-sans",
   display: "swap"
 });
 
-const display = Fraunces({
+const geistMono = Geist_Mono({
   subsets: ["latin"],
-  style: ["normal", "italic"],
-  weight: ["300", "400", "500", "600"],
-  variable: "--font-display-face",
-  display: "swap"
-});
-
-const ui = Inter({
-  subsets: ["latin"],
-  weight: ["400", "500", "600", "700"],
-  variable: "--font-ui-face",
-  display: "swap"
-});
-
-const deva = Mukta({
-  subsets: ["latin", "devanagari"],
-  weight: ["400", "500", "600", "700", "800"],
-  variable: "--font-deva-face",
+  variable: "--font-geist-mono",
   display: "swap"
 });
 
@@ -37,13 +21,13 @@ export const metadata: Metadata = {
 };
 
 export const viewport = {
-  themeColor: "#FAF7F2",
+  themeColor: "#FFFFFF",
   colorScheme: "light" as const
 };
 
 export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
   return (
-    <html lang="en" className={`${display.variable} ${ui.variable} ${deva.variable} ${brand.variable}`}>
+    <html lang="en" className={cn(geist.variable, geistMono.variable, "font-sans")}>
       <body>
         <a className="skip-link" href="#main">Skip to main content</a>
         {children}

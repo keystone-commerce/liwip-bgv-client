@@ -2,6 +2,7 @@
 
 import { useEffect, useState, useRef, type MouseEvent } from "react";
 import Image from "next/image";
+import Link from "next/link";
 import type { VerificationPackage } from "@/lib/types";
 
 interface EditorialHomeProps {
@@ -41,53 +42,13 @@ function formatPrice(price?: number) {
   }).format(price);
 }
 
-function useCountUp(target: number, isVisible: boolean, durationMs = 1200) {
-  const [count, setCount] = useState(0);
-
-  useEffect(() => {
-    if (!isVisible) return;
-    if (typeof window !== "undefined" && window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
-      setCount(target);
-      return;
-    }
-
-    let startTimestamp: number | null = null;
-    let animationFrameId: number;
-
-    const step = (timestamp: number) => {
-      if (!startTimestamp) startTimestamp = timestamp;
-      const progress = Math.min((timestamp - startTimestamp) / durationMs, 1);
-      const eased = 1 - Math.pow(1 - progress, 3);
-      setCount(Math.floor(eased * target));
-      if (progress < 1) {
-        animationFrameId = window.requestAnimationFrame(step);
-      } else {
-        setCount(target);
-      }
-    };
-
-    animationFrameId = window.requestAnimationFrame(step);
-    return () => window.cancelAnimationFrame(animationFrameId);
-  }, [target, isVisible, durationMs]);
-
-  return count;
-}
-
 export function EditorialHome({ packages, backendReady, hasDraft, onWorker, onOrganisation }: EditorialHomeProps) {
   const orderedPackages = [...packages].sort((a, b) => packageOrder.indexOf(a.code) - packageOrder.indexOf(b.code));
-  const packageCount = orderedPackages.length || 6;
   const serviceText = backendReady === false ? "Verification service offline" : backendReady ? "Verification service online" : "Checking verification service";
 
   const [tilt, setTilt] = useState({ rotateX: 0, rotateY: 0, scale: 1, active: false });
-  const [statsVisible, setStatsVisible] = useState(false);
-  const statsRef = useRef<HTMLDivElement>(null);
   const navRef = useRef<HTMLElement>(null);
   const navSentinelRef = useRef<HTMLDivElement>(null);
-
-  const count12M = useCountUp(12, statsVisible);
-  const count12Mo = useCountUp(12, statsVisible);
-  const countPackages = useCountUp(packageCount, statsVisible);
-  const count1 = useCountUp(1, statsVisible);
 
   useEffect(() => {
     const observer = new IntersectionObserver(
@@ -104,21 +65,6 @@ export function EditorialHome({ packages, backendReady, hasDraft, onWorker, onOr
     const elements = document.querySelectorAll(".editorial-reveal");
     elements.forEach((el) => observer.observe(el));
 
-    const statsElement = statsRef.current;
-    let statsObserver: IntersectionObserver | undefined;
-    if (statsElement) {
-      statsObserver = new IntersectionObserver(
-        (entries) => {
-          if (entries[0].isIntersecting) {
-            setStatsVisible(true);
-            statsObserver?.disconnect();
-          }
-        },
-        { threshold: 0.2 }
-      );
-      statsObserver.observe(statsElement);
-    }
-
     // Condense the nav once the top sentinel scrolls out of view.
     const sentinel = navSentinelRef.current;
     let navObserver: IntersectionObserver | undefined;
@@ -134,7 +80,6 @@ export function EditorialHome({ packages, backendReady, hasDraft, onWorker, onOr
 
     return () => {
       observer.disconnect();
-      statsObserver?.disconnect();
       navObserver?.disconnect();
     };
   }, []);
@@ -165,14 +110,14 @@ export function EditorialHome({ packages, backendReady, hasDraft, onWorker, onOr
       <div ref={navSentinelRef} aria-hidden="true" style={{ position: "absolute", top: 0, height: 1, width: 1 }} />
       <header className="editorial-nav-shell" ref={navRef}>
         <div className="editorial-container editorial-nav-inner">
-          <a href="/" className="editorial-brand" aria-label="Liwip — Live With Pride, home">
+          <Link href="/" className="editorial-brand" aria-label="Liwip, Live With Pride, home">
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img className="editorial-brand-mark" src="/liwip-logo.svg" alt="" width={36} height={36} />
             <span className="editorial-brand-lockup">
               <span className="editorial-brand-name">Liwip</span>
               <span className="editorial-brand-tag">Live With Pride.</span>
             </span>
-          </a>
+          </Link>
           <nav className="editorial-nav-links" aria-label="Main navigation">
             <a href="#about">About</a>
             <a href="#packages">Packages</a>
@@ -204,7 +149,7 @@ export function EditorialHome({ packages, backendReady, hasDraft, onWorker, onOr
                 href="?as=worker"
                 onClick={(e) => handleDoorClick(e, onWorker)}
               >
-                Get your Gig Card <span aria-hidden="true">→</span>
+                {hasDraft ? "Continue verification" : "Get your Gig Card"} <span aria-hidden="true">→</span>
               </a>
             </div>
             <div className="editorial-card-visual" aria-label="Example LIWIP Gig Card">
@@ -240,7 +185,7 @@ export function EditorialHome({ packages, backendReady, hasDraft, onWorker, onOr
                   className="editorial-door-row"
                   href="?as=worker"
                   onClick={(e) => handleDoorClick(e, onWorker)}
-                  aria-label="I am a worker — get verified"
+                  aria-label="I am a worker, get verified"
                 >
                   <span className="editorial-door-icon" aria-hidden="true">
                     <svg width="21" height="21" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round">
@@ -252,7 +197,7 @@ export function EditorialHome({ packages, backendReady, hasDraft, onWorker, onOr
                     <span className="editorial-door-desc">Get verified once and carry a trusted work credential across platforms.</span>
                   </span>
                   <span className="editorial-door-foot">
-                    <span className="editorial-door-badge" style={{ background: "#E9F5EF", color: "#0F6B4C" }}>Available</span>
+                    <span className="editorial-door-badge status-verified">Available</span>
                     <span className="editorial-door-arrow" aria-hidden="true">→</span>
                   </span>
                 </a>
@@ -261,7 +206,7 @@ export function EditorialHome({ packages, backendReady, hasDraft, onWorker, onOr
                   className="editorial-door-row"
                   href="?as=organisation"
                   onClick={(e) => handleDoorClick(e, onOrganisation)}
-                  aria-label="I am an organisation — verify workers at scale"
+                  aria-label="I am an organisation, verify workers at scale"
                 >
                   <span className="editorial-door-icon" aria-hidden="true">
                     <svg width="21" height="21" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round">
@@ -273,7 +218,7 @@ export function EditorialHome({ packages, backendReady, hasDraft, onWorker, onOr
                     <span className="editorial-door-desc">Verify gig workforces at scale with role-based screening packages.</span>
                   </span>
                   <span className="editorial-door-foot">
-                    <span className="editorial-door-badge" style={{ background: "#FBF1DC", color: "#8A5100" }}>Coming soon</span>
+                    <span className="editorial-door-badge status-manual-review">Coming soon</span>
                     <span className="editorial-door-arrow" aria-hidden="true">→</span>
                   </span>
                 </a>
