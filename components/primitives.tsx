@@ -3,7 +3,11 @@
 import { useEffect, useState } from "react";
 import type { InputHTMLAttributes, ReactNode, SelectHTMLAttributes } from "react";
 import Image from "next/image";
+import { AlertCircle, Check, CheckCircle2, Clock3, FileUp, LoaderCircle, TriangleAlert } from "lucide-react";
 import type { FlowStep } from "@/lib/types";
+import { Alert } from "@/components/ui/alert";
+import { Badge } from "@/components/ui/badge";
+import { Input } from "@/components/ui/input";
 
 export function Brand() {
   return (
@@ -27,7 +31,7 @@ export function Field({ label, hint, required, error, id, children }: { label: s
 
 export function TextInput(props: InputHTMLAttributes<HTMLInputElement>) {
   const { className, ...rest } = props;
-  return <input className={`input ${className || ""}`} {...rest} />;
+  return <Input className={`input ${className || ""}`} {...rest} />;
 }
 
 export function SelectInput(props: SelectHTMLAttributes<HTMLSelectElement>) {
@@ -59,7 +63,7 @@ export function UploadBox({ title, subtitle, accept, capture, onChange, fileName
     <div className="upload-field">
       <label className={`upload-box ${fileName ? "is-filled" : ""}`}>
         <input type="file" accept={accept} capture={capture} onChange={(event) => choose(event.target.files?.[0])} />
-        {preview ? <Image className="upload-preview" src={preview} alt="Selected document preview" width={80} height={80} unoptimized /> : <span className="upload-icon" aria-hidden="true">↥</span>}
+        {preview ? <Image className="upload-preview" src={preview} alt="Selected document preview" width={80} height={80} unoptimized /> : <FileUp className="upload-icon" aria-hidden="true" />}
         <span><strong>{fileName || title}</strong><small>{fileName ? "Selected. Tap to replace" : subtitle}</small></span>
       </label>
       {error && <span className="field-error-message"><b aria-hidden="true">!</b> {error}</span>}
@@ -71,7 +75,7 @@ export function ToggleRow({ checked, onChange, title, description, required }: {
   return (
     <label className="toggle-row">
       <input type="checkbox" checked={checked} onChange={(event) => onChange(event.target.checked)} />
-      <span className="checkmark">✓</span>
+      <span className="checkmark"><Check aria-hidden="true" /></span>
       <span><strong>{title}{required && <em>Required</em>}</strong>{description && <small>{description}</small>}</span>
     </label>
   );
@@ -86,11 +90,12 @@ export function StatusPill({ status }: { status: string }) {
     FAILED: "Needs fix",
     MANUAL_REVIEW: "Under review"
   };
-  return <span className={`status status-${status.toLowerCase().replaceAll("_", "-")}`}>{labels[status] || status.replaceAll("_", " ")}</span>;
+  const Icon = status === "VERIFIED" ? CheckCircle2 : status === "FAILED" ? AlertCircle : status === "MANUAL_REVIEW" ? TriangleAlert : status === "PROCESSING" ? LoaderCircle : Clock3;
+  return <Badge className={`status status-${status.toLowerCase().replaceAll("_", "-")}`} variant="outline"><Icon data-icon="inline-start" aria-hidden="true" />{labels[status] || status.replaceAll("_", " ")}</Badge>;
 }
 
 export function Notice({ tone = "info", children }: { tone?: "info" | "success" | "warning" | "danger"; children: ReactNode }) {
-  return <div className={`notice notice-${tone}`}>{children}</div>;
+  return <Alert className={`notice notice-${tone}`}>{children}</Alert>;
 }
 
 export function SummaryItem({ label, value }: { label: string; value?: ReactNode }) {

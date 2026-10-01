@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import type { Dispatch, SetStateAction } from "react";
 import Image from "next/image";
+import { CircleHelp, LockKeyhole } from "lucide-react";
 import { Brand, ChapterProgress, EmptyState, Field, Notice, SelectInput, StatusPill, SummaryItem, TextInput, ToggleRow, UploadBox } from "./primitives";
 import { FLOW_STEPS, PACKAGE_OCCUPATION } from "@/lib/steps";
 import { buildApplicationForm } from "@/lib/application-form";
@@ -338,7 +339,7 @@ export function WorkerPortal({ onHome }: { onHome?: () => void }) {
       </header>
       <aside className="sidebar">
         <ChapterProgress steps={FLOW_STEPS} currentIndex={stepIndex} onGoTo={goTo} />
-        <div className="sidebar-help"><span aria-hidden="true">?</span><div><strong>Need help?</strong><small>Your progress is saved on this device.</small></div></div>
+        <div className="sidebar-help"><span aria-hidden="true"><CircleHelp /></span><div><strong>Need help?</strong><small>Your progress is saved on this device.</small></div></div>
       </aside>
       <section className="workspace">
         <div className="workspace-inner">
@@ -347,9 +348,29 @@ export function WorkerPortal({ onHome }: { onHome?: () => void }) {
           {notice && <Notice tone={notice.toLowerCase().includes("failed") || notice.toLowerCase().includes("required") || notice.toLowerCase().includes("valid") ? "danger" : "info"}>{notice}</Notice>}
           <div className="screen-card">{screen}</div>
           {current.code !== "W01" && <div className="form-actions"><button className="button button-ghost" type="button" onClick={() => goTo(stepIndex - 1)} disabled={busy}>← Back</button>{current.code !== "W17" && <button className="button button-primary" type="button" onClick={next} disabled={busy}>{busy ? "Working…" : current.code === "W15" ? "Submit verification" : "Continue"} <span>→</span></button>}</div>}
-          <p className="privacy-note"><span aria-hidden="true">🔒</span> Your data is encrypted in transit. Provider credentials never reach this browser.</p>
+          <p className="privacy-note"><LockKeyhole aria-hidden="true" /> Your data is encrypted in transit. Provider credentials never reach this browser.</p>
         </div>
       </section>
+      <aside className="gig-card-rail" aria-label="Gig Card progress">
+        <div className="gig-card-rail-inner">
+          <p className="rail-kicker">Card so far</p>
+          <div className="gig-card-mini">
+            <div className="gig-card-mini-image">
+              <Image src="/liwip-gig-card.png" alt="Preview of the LIWIP Gig Card" width={1798} height={1376} priority />
+            </div>
+            <div className="gig-card-mini-copy">
+              <h2>{draft.fullName || "Your verified work profile"}</h2>
+              <p>{selectedPackage.name} · {selectedPackage.advertisedCheckCount || selectedPackage.checks.length} checks</p>
+            </div>
+          </div>
+          <div className="rail-status-list">
+            <div className="rail-status-row"><span>01</span><div><strong>Mobile identity</strong><small>{draft.otpVerified ? "Verified" : "Current step"}</small></div></div>
+            <div className="rail-status-row"><span>02</span><div><strong>Worker details</strong><small>{draft.fullName && draft.pinCode ? "Added to profile" : "In queue"}</small></div></div>
+            <div className="rail-status-row"><span>03</span><div><strong>Identity checks</strong><small>{draft.applicationId ? "Checking" : "In queue"}</small></div></div>
+          </div>
+          <p className="rail-note">Each passed check adds verified evidence to this card. Nothing is shown as verified before the provider confirms it.</p>
+        </div>
+      </aside>
     </main>
   );
 }
@@ -397,7 +418,7 @@ function ScreenContent(props: ScreenProps) {
 
   if (current === "W03") return (
     <div className="package-grid">
-      {props.packages.map((item) => <button key={item.code} className={`package-card ${draft.packageCode === item.code ? "selected" : ""}`} onClick={() => update("packageCode", item.code)}><span className="radio-dot" /><div><span className="package-kicker">{item.targetWorkforce || "Gig workforce"}</span><h3>{item.name}</h3><p>{item.description || `${item.advertisedCheckCount || item.checks.length} role-appropriate checks`}</p><div className="package-footer"><strong>₹{item.priceInr ?? "—"}</strong><small>{item.advertisedCheckCount || item.checks.length} checks · 12-month profile</small></div></div></button>)}
+      {props.packages.map((item) => <button key={item.code} className={`package-card ${draft.packageCode === item.code ? "selected" : ""}`} onClick={() => update("packageCode", item.code)}><span className="radio-dot" /><div><span className="package-kicker">{item.targetWorkforce || "Gig workforce"}</span><h3>{item.name}</h3><p>{item.description || `${item.advertisedCheckCount || item.checks.length} role-appropriate checks`}</p><div className="package-footer"><strong>₹{item.priceInr ?? "Not set"}</strong><small>{item.advertisedCheckCount || item.checks.length} checks · 12-month profile</small></div></div></button>)}
     </div>
   );
 
@@ -526,7 +547,7 @@ function ScreenPartTwo(props: ScreenProps) {
 
   if (current === "W15") return (
     <div className="payment-layout">
-      <div className="invoice-card"><span>Selected package</span><h2>{props.selectedPackage.name}</h2><p>{props.selectedPackage.advertisedCheckCount || props.selectedPackage.checks.length} checks · validity determined per check</p><div><span>Verification fee</span><strong>₹{props.selectedPackage.priceInr ?? "—"}</strong></div><div><span>Payment status</span><strong>{props.paymentCoverage.covered ? `Covered by ${props.paymentCoverage.sponsor}` : "Payment pending"}</strong></div><hr /><div className="invoice-total"><span>Amount due from worker</span><strong>{props.paymentCoverage.covered ? "₹0" : `₹${props.selectedPackage.priceInr ?? "—"}`}</strong></div></div>
+      <div className="invoice-card"><span>Selected package</span><h2>{props.selectedPackage.name}</h2><p>{props.selectedPackage.advertisedCheckCount || props.selectedPackage.checks.length} checks · validity determined per check</p><div><span>Verification fee</span><strong>₹{props.selectedPackage.priceInr ?? "Not set"}</strong></div><div><span>Payment status</span><strong>{props.paymentCoverage.covered ? `Covered by ${props.paymentCoverage.sponsor}` : "Payment pending"}</strong></div><hr /><div className="invoice-total"><span>Amount due from worker</span><strong>{props.paymentCoverage.covered ? "₹0" : `₹${props.selectedPackage.priceInr ?? "Not set"}`}</strong></div></div>
       <div className="payer-options">
         <h3>How will this be paid?</h3>
         {props.paymentCoverage.covered ? <div className="payment-covered"><span>✓</span><div><small>Payment code applied</small><strong>Verification fee covered</strong><p>{props.paymentCoverage.sponsor} will pay for this verification.</p></div><button onClick={props.removePaymentCode}>Remove</button></div> : <>
@@ -544,7 +565,7 @@ function ScreenPartTwo(props: ScreenProps) {
     <div className="tracker-layout">
       {!draft.applicationId ? <EmptyState icon="◷" title="No active case" description="Complete the application to create a verification case." /> : <>
         <div className="case-head"><div><span>Application ID</span><strong>{draft.applicationId}</strong></div><button className="copy-id" type="button" aria-label="Copy application ID" onClick={() => navigator.clipboard.writeText(draft.applicationId || "")}>Copy</button><StatusPill status={application?.status || "QUEUED"} /></div>
-        {props.uploadStatus && <div className="secure-storage-status"><span>🔒</span><div><strong>{props.uploadStatus}</strong><small>{props.secureDocuments.length} document{props.secureDocuments.length === 1 ? "" : "s"} stored with private access and KMS encryption.</small></div></div>}
+        {props.uploadStatus && <div className="secure-storage-status"><span><LockKeyhole aria-hidden="true" /></span><div><strong>{props.uploadStatus}</strong><small>{props.secureDocuments.length} document{props.secureDocuments.length === 1 ? "" : "s"} stored with private access and KMS encryption.</small></div></div>}
         <div className="tracker-count"><strong>{completedCheckCount(application)} of {application?.verifications?.length || 0} checks complete</strong><button type="button" onClick={props.refreshApplication}>Refresh</button></div>
         <div className="tracker-progress" aria-hidden="true"><span style={{ width: `${progressPercent(application)}%` }} /></div>
         <div className="checkpoint-list" aria-live="polite">{application?.verifications?.length ? sortedChecks(application).map((check) => <article key={check.id}><span className={`checkpoint checkpoint-${check.status.toLowerCase().replaceAll("_", "-")}`}>{check.status === "VERIFIED" ? "✓" : check.status === "FAILED" ? "!" : check.status === "MANUAL_REVIEW" ? "◐" : check.status === "PROCESSING" ? "↻" : "·"}</span><div><strong>{prettyCheck(check.type)}</strong><small>{check.status === "VERIFIED" ? "Verified" : check.status === "PROCESSING" ? "Checking now" : `Attempt ${check.attemptCount}`}</small>{check.failureReason && <p>{check.failureReason}</p>}{check.status === "FAILED" && <button className="inline-retry" type="button" onClick={() => props.retry(check.id)} disabled={props.busy}>Fix and retry</button>}</div><StatusPill status={check.status} /></article>) : <div className="loading-row"><span className="spinner" /> Waiting for verification checks…</div>}</div>

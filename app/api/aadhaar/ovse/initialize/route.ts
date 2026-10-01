@@ -17,7 +17,7 @@ export async function POST(request: Request) {
 
   try {
     const input = await request.json().catch(() => ({})) as { fullName?: string };
-    const redirectUrl = process.env.AADHAAR_OVSE_REDIRECT_URL || new URL("/?aadhaar=return", request.url).toString();
+    const redirectUrl = process.env.AADHAAR_OVSE_REDIRECT_URL || new URL("/apply?aadhaar=return", request.url).toString();
     const response = await backendFetch("/v1/aadhaar/ovse/initialize", {
       method: "POST",
       headers: { "Content-Type": "application/json" },

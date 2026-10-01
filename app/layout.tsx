@@ -1,35 +1,25 @@
 import type { Metadata } from "next";
-import { Fraunces, Inter, Mukta, Baloo_2 } from "next/font/google";
+import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
+import { cn } from "@/lib/utils";
 
-const brand = Baloo_2({
+const geist = Geist({
   subsets: ["latin"],
-  weight: ["600", "700", "800"],
-  variable: "--font-brand",
+  variable: "--font-geist-sans",
   display: "swap"
 });
 
-const display = Fraunces({
+const geistMono = Geist_Mono({
   subsets: ["latin"],
-  style: ["normal", "italic"],
-  weight: ["300", "400", "500", "600"],
-  variable: "--font-display-face",
+  variable: "--font-geist-mono",
   display: "swap"
 });
 
-const ui = Inter({
-  subsets: ["latin"],
-  weight: ["400", "500", "600", "700"],
-  variable: "--font-ui-face",
-  display: "swap"
-});
-
-const deva = Mukta({
-  subsets: ["latin", "devanagari"],
-  weight: ["400", "500", "600", "700", "800"],
-  variable: "--font-deva-face",
-  display: "swap"
-});
+// Indian scripts fall back behind Geist (DESIGN.md §3). Loaded as a plain Google Fonts
+// stylesheet because next/font fails on the Noto families under Turbopack. Each face
+// carries a unicode-range, so the browser fetches it only when that script renders.
+const NOTO_SCRIPTS_CSS =
+  "https://fonts.googleapis.com/css2?family=Noto+Sans+Bengali:wght@400;500&family=Noto+Sans+Devanagari:wght@400;500&family=Noto+Sans+Tamil:wght@400;500&family=Noto+Sans+Telugu:wght@400;500&display=swap";
 
 export const metadata: Metadata = {
   title: "LIWIP | Worker Verification",
@@ -37,13 +27,17 @@ export const metadata: Metadata = {
 };
 
 export const viewport = {
-  themeColor: "#FAF7F2",
+  themeColor: "#FFFFFF",
   colorScheme: "light" as const
 };
 
 export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
   return (
-    <html lang="en" className={`${display.variable} ${ui.variable} ${deva.variable} ${brand.variable}`}>
+    <html lang="en" className={cn(geist.variable, geistMono.variable, "font-sans")}>
+      <head>
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="" />
+        <link rel="stylesheet" href={NOTO_SCRIPTS_CSS} />
+      </head>
       <body>
         <a className="skip-link" href="#main">Skip to main content</a>
         {children}

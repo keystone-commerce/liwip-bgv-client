@@ -16,7 +16,7 @@ export async function POST(request: Request) {
 
   try {
     const input = await request.json().catch(() => ({})) as { fullName?: string; email?: string };
-    const redirectUrl = process.env.DIGILOCKER_REDIRECT_URL || new URL("/?digilocker=return", request.url).toString();
+    const redirectUrl = process.env.DIGILOCKER_REDIRECT_URL || new URL("/apply?digilocker=return", request.url).toString();
     const logoUrl = process.env.DIGILOCKER_LOGO_URL;
     const localFrontendUrl = new URL("/", request.url).toString();
     const data = {
