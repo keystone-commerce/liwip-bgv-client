@@ -301,7 +301,7 @@ On a 360px Android phone in Chrome, the address bar, autofill bar and keyboard l
 
 ### Liwip BGV Card (mini)
 
-"Liwip BGV Card" is renamed **Liwip BGV Card** everywhere: copy, header strip, code (`BgvCard`). Used on entry, number verified, worker home, returning. 1px `--foreground` frame; ink header strip with 9px blue square, `LIWIP BGV CARD` and the application ID; rows of check name + state badge, or an 8-segment 6px bar for overview. Locked variant (R1b) replaces the ID with a lock icon and shows only a count.
+"Liwip BGV Card" is renamed **Liwip BGV Card** everywhere: copy, header strip, code (`BgvCard`). Used on entry, number verified, worker home, returning. 1px `--foreground` frame; ink header strip with 9px blue square, `LIWIP BGV CARD` and the **card number** (not the application ID). The card number is issued when the mobile number is verified and stays with the worker, so the digital and physical card carry the same number; the application ID belongs to one verification case and is for support and the backend. A row that is not done yet names the next action and says what it adds, for example `Pick your work` / "Decides which checks go on your card" / `NEXT`; rows of check name + state badge, or an 8-segment 6px bar for overview. Locked variant (R1b) replaces the ID with a lock icon and shows only a count.
 
 ### Entry dark mode (1b)
 
@@ -336,7 +336,7 @@ One row per check, no pre-ticked boxes in production (the mock shows 3 of 5 tick
 - Screens: `Liwip Onboarding.dc.html` (mobile), `Liwip Design Direction v3.dc.html` (W08 identity, desktop).
 - Fonts: Geist, Geist Mono, Noto Sans Devanagari / Bengali / Tamil / Telugu.
 - Icons: Lucide, `stroke-linecap="square"`.
-- Open decisions: R1 vs R1b; final language list; package contents and timings are placeholders; OTP-on-call and SMS status alerts need product confirmation.
+- Open decisions: card number format (placeholder `LBC 2409 1673`); R1 vs R1b; final language list; package contents and timings are placeholders; OTP-on-call and SMS status alerts need product confirmation.
 
 ---
 

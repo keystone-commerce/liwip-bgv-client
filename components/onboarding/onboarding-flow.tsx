@@ -26,7 +26,7 @@ interface Draft {
 const EMPTY_DRAFT: Draft = { language: "en", languageChosen: false, phone: "", resendAfter: 30, consentDone: false, quickSignInOffered: false };
 const DRAFT_KEY = "liwip-onboarding-draft";
 
-const DEMO_WORKER: WorkerProfile = { applicationId: "APP-240916", firstName: "Sandeep", fullName: "Sandeep Meena", phone: "9876543210" };
+const DEMO_WORKER: WorkerProfile = { applicationId: "APP-240916", cardNumber: "LBC 2409 1673", firstName: "Sandeep", fullName: "Sandeep Meena", phone: "9876543210" };
 const DEMO_RETURNING: ReturningWorker = {
   ...DEMO_WORKER,
   checks: [
@@ -258,7 +258,7 @@ export function OnboardingFlow({
       case "verified":
         return draft.worker ? (
           <VerifiedScreen
-            applicationId={draft.worker.applicationId}
+            cardNumber={draft.worker.cardNumber}
             onContinue={() => {
               const canOffer = !draft.quickSignInOffered && typeof window !== "undefined" && "PublicKeyCredential" in window;
               go(canOffer ? "quick-sign-in" : "home", { replace: true });

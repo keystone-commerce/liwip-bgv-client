@@ -118,7 +118,7 @@ export function ReturningScreen({
           <TextAction onClick={onNotYou} className="min-h-0 px-1 py-3 normal-case tracking-normal">Not you?</TextAction>
         </p>
 
-        <BgvCard applicationId={worker.applicationId} locked={locked} className="mt-5">
+        <BgvCard cardNumber={worker.cardNumber} locked={locked} className="mt-5">
           <div className="flex flex-col gap-2.5 px-3 py-3.5">
             {locked ? (
               <>

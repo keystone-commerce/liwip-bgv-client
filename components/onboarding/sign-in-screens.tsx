@@ -359,7 +359,7 @@ export function OtpScreen({
 
 /* 05 Number verified ----------------------------------------------------- */
 
-export function VerifiedScreen({ applicationId, onContinue }: { applicationId: string; onContinue: () => void }) {
+export function VerifiedScreen({ cardNumber, onContinue }: { cardNumber: string; onContinue: () => void }) {
   return (
     <Screen>
       <TopBar />
@@ -372,10 +372,10 @@ export function VerifiedScreen({ applicationId, onContinue }: { applicationId: s
           Number verified. <span className="text-muted-foreground">Your card has started.</span>
         </h1>
         <p className="m-0 text-[15px] leading-[1.55] text-secondary-text">Every check you pass is added here. The card stays yours, even if you change platforms.</p>
-        <BgvCard applicationId={applicationId} className="mt-[26px]">
+        <BgvCard cardNumber={cardNumber} className="mt-[26px]">
           <div className="px-3 pt-0.5 pb-1">
             <BgvCardRow label="Mobile number" state="verified" />
-            <BgvCardRow label="Checks for your work" state="queued" stateLabel="Next" muted />
+            <BgvCardRow label="Pick your work" detail="Decides which checks go on your card" state="queued" stateLabel="Next" />
           </div>
         </BgvCard>
       </Body>
