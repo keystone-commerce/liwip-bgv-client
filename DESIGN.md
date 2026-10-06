@@ -253,7 +253,7 @@ Reference: `Liwip Onboarding.dc.html`. Artboards are 360 × 760. Flow: 01 Entry 
 - Unchecked radio and checkbox edges are `--control`, not `#C4C5CB` or `#B9BAC1` (under 3:1).
 - Every badge carries an icon. "In progress" on worker home uses the In queue treatment, not amber: amber means a human is reviewing.
 - The HELP chip on worker home shows only when `NEXT_PUBLIC_ONBOARDING_HELP_URL` is set; there is no help destination yet.
-- Worker home: "Liwip BGV Card" is followed by a `1 VERIFIED` pill and the line "Your checks appear here once you choose your work." The design shows only this state; once a work type is chosen the line is replaced by the package's check bar, since the checks are then known.
+- Worker home shows what is verified, never a count: a count reads as if the card is issued at the end. Under the name: 20px, a `--line-soft` rule, 16px, then a `LIWIP BGV CARD` kicker, the verified phone number with a `VERIFIED` badge, and, until work is chosen, "Choose your work to see which checks you need." The next-step card header reads `APPLICATION · STEP N OF 5`, counting only the five main stages, instead of the application ID. On screens narrower than about 370px the `IN PROGRESS` badge wraps below that label rather than overlapping it.
 - Entry 2a (light) follows the `.dc.html` artboard. `DESIGN-CHANGES.md` describes a different 2a (top-right bloom, `FOR GIG WORKERS`, card preview) without its description copy; 1b is the one that ships.
 
 ### Screen shell
