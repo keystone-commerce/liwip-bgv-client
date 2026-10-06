@@ -12,3 +12,7 @@ coverage/
 
 # Local Claude Code config (dev-server launch settings)
 .claude/
+
+# Local review captures and reports
+screenshots/
+reports/
