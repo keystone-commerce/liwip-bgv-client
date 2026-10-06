@@ -42,7 +42,8 @@ export interface OnboardingService {
   forgetDevice(): Promise<void>;
 }
 
-const RETURNING_KEY = "liwip-onboarding-returning";
+// Versioned with the stored shape (v2: cardNumber); older entries are ignored.
+const RETURNING_KEY = "liwip-onboarding-returning-v2";
 const wait = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
 
 function readStorage<T>(key: string): T | null {

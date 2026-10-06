@@ -24,7 +24,9 @@ interface Draft {
 }
 
 const EMPTY_DRAFT: Draft = { language: "en", languageChosen: false, phone: "", resendAfter: 30, consentDone: false, quickSignInOffered: false };
-const DRAFT_KEY = "liwip-onboarding-draft";
+// Bump the version whenever the shape of Draft or WorkerProfile changes, so a browser
+// holding an older draft starts fresh instead of rendering missing fields (v2: cardNumber).
+const DRAFT_KEY = "liwip-onboarding-draft-v2";
 
 const DEMO_WORKER: WorkerProfile = { applicationId: "APP-240916", cardNumber: "LBC 2409 1673", firstName: "Sandeep", fullName: "Sandeep Meena", phone: "9876543210" };
 const DEMO_RETURNING: ReturningWorker = {
