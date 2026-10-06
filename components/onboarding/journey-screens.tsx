@@ -112,10 +112,13 @@ export function HomeScreen({
           <div className="border-t border-line-soft pt-4">
             {pack && work ? (
               <>
-                <div className="flex items-center justify-between gap-2.5">
-                  <Kicker className="tracking-[0.12em]">Liwip BGV Card · {pack.name}</Kicker>
-                  <span className="tabular label-mono tracking-normal text-secondary-text">
-                    {verifiedCount} of {checks.length} verified
+                {/* Two lines so neither part wraps at 360px: the label alone, then the work
+                    type with the count on the right (DESIGN.md §13, 06b). */}
+                <Kicker className="tracking-[0.12em]">Liwip BGV Card</Kicker>
+                <div className="mt-1.5 flex items-baseline justify-between gap-3">
+                  <span className="min-w-0 text-[17px] font-medium tracking-[-0.012em]">{work.title}</span>
+                  <span className="tabular flex-none font-mono text-[12px] font-medium whitespace-nowrap text-secondary-text">
+                    <span className="text-state-verified">{verifiedCount}</span> / {checks.length} verified
                   </span>
                 </div>
                 <ul className="mt-1.5 mb-0 list-none p-0">
