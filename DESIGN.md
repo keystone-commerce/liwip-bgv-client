@@ -252,7 +252,6 @@ Reference: `Liwip Onboarding.dc.html`. Artboards are 360 × 760. Flow: 01 Entry 
 - Blocked primary text is `--muted-foreground` on `--disabled`, not `#8A8C93` (2.8:1).
 - Unchecked radio and checkbox edges are `--control`, not `#C4C5CB` or `#B9BAC1` (under 3:1).
 - Every badge carries an icon. "In progress" on worker home uses the In queue treatment, not amber: amber means a human is reviewing.
-- Quick sign-in copy says "your phone's screen lock" instead of naming fingerprint, face or PIN. The design's copy names them, which the passkey rule below forbids.
 - The HELP chip on worker home shows only when `NEXT_PUBLIC_ONBOARDING_HELP_URL` is set; there is no help destination yet.
 - Worker home says "1 check verified" until a work type is chosen, instead of `1 / 8 checks`: the total depends on the package.
 - Entry 2a (light) follows the `.dc.html` artboard. `DESIGN-CHANGES.md` describes a different 2a (top-right bloom, `FOR GIG WORKERS`, card preview) without its description copy; 1b is the one that ships.
@@ -311,7 +310,7 @@ The product ships 1b as the entry screen; 2a stays as the light reference. Same 
 
 - WebAuthn platform authenticator, discoverable credential bound to the worker ID, `userVerification: "required"`.
 - Offered once, after number verified (05b). Always optional; `NOT NOW, USE OTP` is a full secondary button, not a link.
-- Shared-phone warning is mandatory on the setup screen, in the in-review (amber) treatment.
+- Copy is one line: "Use your phone's screen lock instead of a code." There is no shared-phone warning box; the design removed it.
 - **Copy never names a biometric.** The OS decides between fingerprint, face and PIN. Say `UNLOCK`, "your phone's screen lock". The fingerprint icon is allowed as a recognisable symbol.
 - OTP is always available on the returning screen.
 

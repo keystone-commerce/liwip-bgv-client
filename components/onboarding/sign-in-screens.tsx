@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { Check, CircleAlert, Fingerprint, MessageSquare, Users } from "lucide-react";
+import { Check, CircleAlert, Fingerprint, MessageSquare } from "lucide-react";
 import { StateBadge } from "@/components/state-badge";
 import { formatPhone, LANGUAGES, type LanguageCode } from "@/lib/onboarding/data";
 import { ONBOARDING_TEST_MODE, TEST_OTP, TEST_PHONE } from "@/lib/onboarding/test-mode";
@@ -413,7 +413,7 @@ export function QuickSignInScreen({ onEnable, onSkip }: { onEnable: () => Promis
         </span>
         <Title className="mt-[22px] mb-2.5">Sign in faster next time</Title>
         {/* Copy never names a biometric; the OS decides between fingerprint, face and PIN (DESIGN.md §13). */}
-        <p className="m-0 text-[15px] leading-[1.55] text-secondary-text">No code to wait for. You unlock Liwip the same way you unlock your phone, with your phone’s screen lock.</p>
+        <p className="m-0 text-[15px] leading-[1.55] text-secondary-text">Use your phone’s screen lock instead of a code.</p>
         <div className="mt-[22px] border-t border-border">
           <p className="label-mono m-0 pt-3 pb-0.5 text-muted-foreground">One touch to</p>
           <ul className="m-0 list-none p-0">
@@ -426,10 +426,6 @@ export function QuickSignInScreen({ onEnable, onSkip }: { onEnable: () => Promis
           </ul>
         </div>
         {failed && <ErrorBanner>Quick sign-in could not be turned on. You can keep using OTP.</ErrorBanner>}
-        <div className="mt-auto flex items-start gap-2.5 border border-state-review-border bg-state-review-bg px-3.5 py-3">
-          <Icon icon={Users} size={14} strokeWidth={2} className="mt-[3px] flex-none text-state-review" />
-          <p className="m-0 text-[13px] leading-[1.5]">Shared phone? Skip this. Anyone who can unlock this phone could open your account.</p>
-        </div>
       </Body>
       <Footer>
         <PrimaryAction icon={Fingerprint} busy={busy} onClick={enable}>Turn on quick sign-in</PrimaryAction>
