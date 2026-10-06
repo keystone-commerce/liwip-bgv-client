@@ -1,7 +1,6 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { motion, useReducedMotion } from "motion/react";
 import { Fingerprint } from "lucide-react";
 import { StateBadge } from "@/components/state-badge";
 import { maskPhone } from "@/lib/onboarding/data";
@@ -24,43 +23,28 @@ const ENTRY_BLOOM = {
 };
 const WELCOME_BLOOM = "radial-gradient(110% 44% at 50% 0%, rgba(44,98,246,0.16) 0%, rgba(44,98,246,0.04) 45%, rgba(255,255,255,0) 72%)";
 
-/** 01 Entry. Light is 2a; dark is 1b, the only dark surface in the product (DESIGN.md §13). */
-const ENTRY_SEEN_KEY = "liwip-entry-seen";
-
-/** True only on the first visit on this device. Storage failures count as seen. */
-function useFirstVisit() {
-  const [first] = useState(() => {
-    try {
-      return !window.localStorage.getItem(ENTRY_SEEN_KEY);
-    } catch {
-      return false;
-    }
-  });
+/** Flips to true one frame after mount, so a CSS transition has a starting state to leave. */
+function useEntered() {
+  const [entered, setEntered] = useState(false);
   useEffect(() => {
-    try {
-      window.localStorage.setItem(ENTRY_SEEN_KEY, "1");
-    } catch {
-      // Private windows can block storage; the glow simply animates again next time.
-    }
+    const frame = requestAnimationFrame(() => requestAnimationFrame(() => setEntered(true)));
+    return () => cancelAnimationFrame(frame);
   }, []);
-  return first;
+  return entered;
 }
 
+/** 01 Entry. Light is 2a; dark is 1b, the only dark surface in the product (DESIGN.md §13). */
 export function EntryScreen({ tone, language, onStart, onLanguage }: { tone: "light" | "dark"; language: string; onStart: () => void; onLanguage: () => void }) {
   const dark = tone === "dark";
-  const firstVisit = useFirstVisit();
-  const reduceMotion = useReducedMotion();
-  // First visit only: the glow rises into place from below the fold (DESIGN.md §8).
-  const riseIn = firstVisit && !reduceMotion;
+  const entered = useEntered();
   return (
     <Screen tone={tone}>
-      <motion.div
+      {/* The glow fades in each time the entry opens: opacity only, 1.6s (DESIGN.md §8).
+          Reduced motion collapses the transition through the rule in globals.css. */}
+      <div
         aria-hidden="true"
-        className="pointer-events-none absolute inset-0"
+        className={cn("pointer-events-none absolute inset-0 transition-opacity delay-150 duration-[1600ms] ease-out", entered ? "opacity-100" : "opacity-0")}
         style={{ background: ENTRY_BLOOM[tone] }}
-        initial={riseIn ? { opacity: 0, y: "22%" } : false}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 1.8, delay: 0.25, ease: [0.16, 1, 0.3, 1] }}
       />
       <TopBar tone={tone} right={<LanguageChip code={language} onClick={onLanguage} tone={tone} />} />
       <Body className="relative pt-[34px]">

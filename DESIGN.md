@@ -181,7 +181,7 @@ Forbidden: any form surface, any table, any panel a worker reads or types into, 
 
 - Interactive feedback is a colour change only: `color`, `background-color`, `border-color`, `opacity`, 140ms ease. Nothing scales or lifts.
 - **Screen-to-screen transitions** are the one movement allowed: a 28px horizontal slide with a crossfade in the direction of travel, 280ms in and 160ms out, ease `[0.22, 1, 0.36, 1]`. Built with Motion (`motion/react`) in `components/onboarding/onboarding-flow.tsx`. Elements inside a screen do not animate in.
-- **Entry glow, first visit only:** the bloom on the entry screen rises 22% and fades in over 1.8s (250ms delay, ease `[0.16, 1, 0.3, 1]`). A `liwip-entry-seen` flag in `localStorage` keeps later visits static.
+- **Entry glow:** the bloom on the entry screen fades in each time the screen opens, a CSS opacity transition of 1.6s after 150ms, ease-out. Opacity only; it does not move.
 - The Checking state is the only thing that animates continuously (icon spin, 1.2s linear).
 - `prefers-reduced-motion: reduce` collapses every animation and transition. Screen transitions drop the slide and keep a short fade. Keep the block in `globals.css` intact, and make new animation respect it.
 
