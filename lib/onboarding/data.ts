@@ -4,6 +4,9 @@
 
 import type { VerificationState } from "@/components/state-badge";
 
+/** Where the HELP chip on worker home goes. The chip is hidden until this is set. */
+export const HELP_URL = process.env.NEXT_PUBLIC_ONBOARDING_HELP_URL;
+
 export type LanguageCode = "en" | "hi" | "mr" | "bn" | "ta" | "te";
 
 export const LANGUAGES: { code: LanguageCode; native: string; english: string }[] = [

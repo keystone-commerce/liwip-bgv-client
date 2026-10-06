@@ -1,39 +1,74 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
+import { motion, useReducedMotion } from "motion/react";
 import { Fingerprint } from "lucide-react";
 import { StateBadge } from "@/components/state-badge";
 import { maskPhone } from "@/lib/onboarding/data";
 import type { ReturningWorker } from "@/lib/onboarding/service";
 import { cn } from "@/lib/utils";
-import { CheckBar, GigCard } from "./gig-card";
+import { CheckBar, BgvCard } from "./bgv-card";
 import { Body, Footer, Icon, Kicker, LanguageChip, NumberedStep, PrimaryAction, Screen, SecondaryAction, TextAction, TopBar } from "./shell";
 
 const ENTRY_STEPS = [
   { title: "Pick your work", detail: "We match the checks platforms ask for" },
   { title: "Share from DigiLocker", detail: "No typing for most people" },
-  { title: "Keep your Gig Card", detail: "Reuse it for 12 months" }
+  { title: "Keep your Liwip BGV Card", detail: "Reuse it for 12 months" }
 ];
 
-// Marketing-surface gradients (DESIGN.md §7). One blue, rising from below the fold.
+// Allowed gradients (DESIGN.md §7). One blue: rising from below the fold on entry,
+// a soft field from the top on welcome back.
 const ENTRY_BLOOM = {
   light: "radial-gradient(120% 56% at 50% 114%, rgba(44,98,246,0.34) 0%, rgba(44,98,246,0.12) 34%, rgba(255,255,255,0) 68%)",
   dark: "radial-gradient(120% 60% at 50% 112%, rgba(60,118,255,0.95) 0%, rgba(38,80,205,0.42) 32%, rgba(11,11,12,0) 66%)"
 };
+const WELCOME_BLOOM = "radial-gradient(110% 44% at 50% 0%, rgba(44,98,246,0.16) 0%, rgba(44,98,246,0.04) 45%, rgba(255,255,255,0) 72%)";
 
 /** 01 Entry. Light is 2a; dark is 1b, the only dark surface in the product (DESIGN.md §13). */
+const ENTRY_SEEN_KEY = "liwip-entry-seen";
+
+/** True only on the first visit on this device. Storage failures count as seen. */
+function useFirstVisit() {
+  const [first] = useState(() => {
+    try {
+      return !window.localStorage.getItem(ENTRY_SEEN_KEY);
+    } catch {
+      return false;
+    }
+  });
+  useEffect(() => {
+    try {
+      window.localStorage.setItem(ENTRY_SEEN_KEY, "1");
+    } catch {
+      // Private windows can block storage; the glow simply animates again next time.
+    }
+  }, []);
+  return first;
+}
+
 export function EntryScreen({ tone, language, onStart, onLanguage }: { tone: "light" | "dark"; language: string; onStart: () => void; onLanguage: () => void }) {
   const dark = tone === "dark";
+  const firstVisit = useFirstVisit();
+  const reduceMotion = useReducedMotion();
+  // First visit only: the glow rises into place from below the fold (DESIGN.md §8).
+  const riseIn = firstVisit && !reduceMotion;
   return (
     <Screen tone={tone}>
-      <div aria-hidden="true" className="pointer-events-none absolute inset-0" style={{ background: ENTRY_BLOOM[tone] }} />
+      <motion.div
+        aria-hidden="true"
+        className="pointer-events-none absolute inset-0"
+        style={{ background: ENTRY_BLOOM[tone] }}
+        initial={riseIn ? { opacity: 0, y: "22%" } : false}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 1.8, delay: 0.25, ease: [0.16, 1, 0.3, 1] }}
+      />
       <TopBar tone={tone} right={<LanguageChip code={language} onClick={onLanguage} tone={tone} />} />
       <Body className="relative pt-[34px]">
         <Kicker className={cn("tracking-[0.12em]", dark && "text-[#9C9EA5]")}>Background check for gig work</Kicker>
         <h1 className="mt-4 mb-3.5 text-[38px] leading-[1.04] font-medium tracking-[-0.03em]">
           Get verified once. <span className={dark ? "text-[#75777E]" : "text-muted-foreground"}>Work anywhere.</span>
         </h1>
-        <p className={cn("m-0 text-[15px] leading-[1.55]", dark ? "text-[#B4B6BC]" : "text-muted-foreground")}>Three steps, about ten minutes.</p>
+        <p className={cn("m-0 text-[15px] leading-[1.55]", dark ? "text-[#B4B6BC]" : "text-secondary-text")}>Three steps, about ten minutes.</p>
         <ol className={cn("mt-7 mb-0 list-none border-t p-0", dark ? "border-[#2E2E33]" : "border-border")}>
           {ENTRY_STEPS.map((step, index) => (
             <NumberedStep key={step.title} index={index + 1} title={step.title} detail={step.detail} tone={tone} />
@@ -89,16 +124,17 @@ export function ReturningScreen({
 
   return (
     <Screen>
-      <TopBar right={<LanguageChip code={language} onClick={onLanguage} />} />
-      <Body className="pt-[34px]">
+      <div aria-hidden="true" className="pointer-events-none absolute inset-0" style={{ background: WELCOME_BLOOM }} />
+      <TopBar className="bg-transparent" right={<LanguageChip code={language} onClick={onLanguage} />} />
+      <Body className="relative pt-[34px]">
         <Kicker className="tracking-[0.12em]">Welcome back</Kicker>
         <h1 className="mt-2 mb-1.5 text-[30px] leading-[1.1] font-medium tracking-[-0.026em]">{worker.firstName}</h1>
-        <p className="tabular m-0 flex items-center gap-1 font-mono text-[12.5px] text-muted-foreground">
+        <p className="tabular m-0 flex items-center gap-1 font-mono text-[12.5px] text-secondary-text">
           {maskPhone(worker.phone)} ·
           <TextAction onClick={onNotYou} className="min-h-0 px-1 py-3 normal-case tracking-normal">Not you?</TextAction>
         </p>
 
-        <GigCard applicationId={worker.applicationId} locked={locked} className="mt-5">
+        <BgvCard applicationId={worker.applicationId} locked={locked} className="mt-5">
           <div className="flex flex-col gap-2.5 px-3 py-3.5">
             {locked ? (
               <>
@@ -107,7 +143,7 @@ export function ReturningScreen({
                   <StateBadge state="queued" label="Locked" />
                 </div>
                 <CheckBar states={worker.checks.map(() => "hidden")} />
-                <p className="m-0 text-[13px] text-muted-foreground">Results and details stay hidden until you unlock.</p>
+                <p className="m-0 text-[13px] text-secondary-text">Results and details stay hidden until you unlock.</p>
               </>
             ) : (
               <>
@@ -116,17 +152,17 @@ export function ReturningScreen({
                   {live > 0 && <StateBadge state="checking" />}
                 </div>
                 <CheckBar states={worker.checks.map((check) => check.state)} />
-                {worker.liveSummary && <p className="m-0 text-[13px] text-muted-foreground">{worker.liveSummary} Unlock to see details.</p>}
+                {worker.liveSummary && <p className="m-0 text-[13px] text-secondary-text">{worker.liveSummary} Unlock to see details.</p>}
               </>
             )}
           </div>
-        </GigCard>
+        </BgvCard>
 
         <div className="flex flex-1 flex-col items-center justify-center gap-3 py-8">
           <span className="grid size-[84px] place-items-center border border-primary bg-background text-primary outline-[6px] outline-accent outline-solid">
             <Icon icon={Fingerprint} size={40} strokeWidth={1.4} />
           </span>
-          <span className="label-mono text-muted-foreground">Use your phone’s screen lock</span>
+          <span className="label-mono text-secondary-text">Use your phone’s screen lock</span>
         </div>
       </Body>
       <Footer>

@@ -351,12 +351,12 @@ export function WorkerPortal({ onHome }: { onHome?: () => void }) {
           <p className="privacy-note"><LockKeyhole aria-hidden="true" /> Your data is encrypted in transit. Provider credentials never reach this browser.</p>
         </div>
       </section>
-      <aside className="gig-card-rail" aria-label="Gig Card progress">
+      <aside className="gig-card-rail" aria-label="Liwip BGV Card progress">
         <div className="gig-card-rail-inner">
           <p className="rail-kicker">Card so far</p>
           <div className="gig-card-mini">
             <div className="gig-card-mini-image">
-              <Image src="/liwip-gig-card.png" alt="Preview of the LIWIP Gig Card" width={1798} height={1376} priority />
+              <Image src="/liwip-gig-card.png" alt="Preview of the Liwip BGV Card" width={1798} height={1376} priority />
             </div>
             <div className="gig-card-mini-copy">
               <h2>{draft.fullName || "Your verified work profile"}</h2>
@@ -584,7 +584,7 @@ function VerificationCardView({ application, workerName }: { application: Applic
     <section className="liwip-card-wrap">
       <div className="issued-card-art">
         <div className="card-photo-crop">
-          <Image className="card-photo-source" src="/liwip-gig-card.png" alt="LIWIP Gig Card artwork" width={1798} height={1376} sizes="(max-width: 800px) 100vw, 52vw" />
+          <Image className="card-photo-source" src="/liwip-gig-card.png" alt="Liwip BGV Card artwork" width={1798} height={1376} sizes="(max-width: 800px) 100vw, 52vw" />
         </div>
       </div>
       <div className="card-issued-copy"><span>Final result · Pass</span><h3>Your verified worker card is ready</h3><p><strong>{workerName}</strong><br />{application.package?.name || "Worker verification"}</p><dl><div><dt>Card number</dt><dd>{card.cardNumber}</dd></div><div><dt>Valid until</dt><dd>{new Intl.DateTimeFormat("en-IN", { day: "2-digit", month: "short", year: "numeric" }).format(new Date(card.expiresAt))}</dd></div></dl></div>

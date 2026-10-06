@@ -14,7 +14,7 @@ Worker-facing Next.js application for the LIWIP background-verification platform
 - Retry for failed or manual-review checks
 - Focused 17-step MVP journey ending at live status and issue resolution
 
-The MVP excludes Gig Card issuance, profile sharing, renewal, privacy-request and support-ticket pages until their backend services exist.
+The MVP excludes Liwip BGV Card issuance, profile sharing, renewal, privacy-request and support-ticket pages until their backend services exist.
 
 ## Structure
 

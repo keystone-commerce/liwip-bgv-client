@@ -4,14 +4,14 @@ import { StateBadge, type VerificationState } from "@/components/state-badge";
 import { cn } from "@/lib/utils";
 import { Icon } from "./shell";
 
-/** Mini Gig Card (DESIGN.md §13): ink header strip, then check rows or an overview bar. */
-export function GigCard({ applicationId, locked = false, children, className }: { applicationId?: string; locked?: boolean; children: ReactNode; className?: string }) {
+/** Mini Liwip BGV Card (DESIGN.md §13): ink header strip, then check rows or an overview bar. */
+export function BgvCard({ applicationId, locked = false, children, className }: { applicationId?: string; locked?: boolean; children: ReactNode; className?: string }) {
   return (
-    <section aria-label="Gig Card" className={cn("border border-foreground bg-background", className)}>
+    <section aria-label="Liwip BGV Card" className={cn("border border-foreground bg-background", className)}>
       <div className="flex items-center justify-between bg-foreground px-3 py-[9px] text-white">
         <span className="flex items-center gap-2">
           <span aria-hidden="true" className="size-[9px] bg-primary" />
-          <span className="label-mono tracking-[0.12em]">Gig Card</span>
+          <span className="label-mono tracking-[0.12em]">Liwip BGV Card</span>
         </span>
         {locked ? (
           <span className="text-[#9C9EA5]">
@@ -27,7 +27,7 @@ export function GigCard({ applicationId, locked = false, children, className }: 
   );
 }
 
-export function GigCardRow({ label, state, stateLabel, muted = false }: { label: string; state: VerificationState; stateLabel?: string; muted?: boolean }) {
+export function BgvCardRow({ label, state, stateLabel, muted = false }: { label: string; state: VerificationState; stateLabel?: string; muted?: boolean }) {
   return (
     <div className="flex items-center justify-between gap-3 border-b border-line-soft py-2.5 last:border-b-0">
       <span className={cn("text-[13px]", muted ? "text-muted-foreground" : "font-medium")}>{label}</span>

@@ -10,6 +10,7 @@ Liwip is background verification infrastructure for India. Gig workers first, th
   - `Liwip Design Direction v3.dc.html` — the visual direction and one built screen (W08 Identity documents, desktop)
   - `Liwip shadcn Tokens.dc.html` — the Tailwind v4 `globals.css` token block and shadcn coverage notes
   - `Liwip Onboarding.dc.html` — the mobile onboarding flow (§13)
+  - `DESIGN-CHANGES.md` — the change list against the build at `bgv.liwip.com`
 
 ---
 
@@ -48,8 +49,9 @@ Added for the mobile onboarding (§13). Values come from `Liwip Onboarding.dc.ht
 
 | Token | Hex | Use |
 |---|---|---|
+| `--secondary-text` | `#55575E` | Instructions, row details, step label, helper lines (design's ink-70). 7.4:1 on white. `--muted-foreground` stays for kickers, IDs and the second clause of a two-tone headline. |
 | `--paper` | `#FAFAFA` | `+91` prefix cell, empty OTP cell. Same value as `--muted`. |
-| `--line-soft` | `#EEEEF1` | Dividers between selection rows and inside the Gig Card. |
+| `--line-soft` | `#EEEEF1` | Dividers between selection rows and inside the Liwip BGV Card. |
 | `--blue-line` | `#C9D7FD` | Bottom rule of a selected row, quick sign-in figure edge. |
 | `--track` | `#E7E7EA` | Progress and check-bar segments that are still ahead. Non-text only. |
 | `--disabled` | `#E9E9EC` | Fill of a blocked primary button. Its text is `--muted-foreground` (4.9:1). |
@@ -74,7 +76,7 @@ Five states, no more. Each is a triple: text / fill / border.
 
 | State | Text | Fill | Border | Means |
 |---|---|---|---|---|
-| Verified | `#0E7148` | `#EAF4EF` | `#BEDCCC` | Passed. Adds a line to the Gig Card. |
+| Verified | `#0E7148` | `#EAF4EF` | `#BEDCCC` | Passed. Adds a line to the Liwip BGV Card. |
 | In review | `#8A5A00` | `#FAF1DC` | `#E8D5A8` | A human decides. No worker action. |
 | Needs fix | `#BE2E0C` | `#FBEAE5` | `#EFC2B4` | Always shown with the action that fixes it. |
 | Checking | `#1B46C4` | `#EEF2FE` | `#C9D7FD` | Live right now. The only animated state. |
@@ -160,7 +162,7 @@ Never set a form label in Geist, and never set a sentence in Geist Mono.
 - **One route at a time.** Where there are several ways to provide the same thing, use a segmented tab strip and render only the selected panel. Never stack all routes on one screen.
 - **The tab is the heading.** A panel must not repeat its own tab's label, icon or badge.
 - **Consent is per check**, with purpose, text version and timestamp recorded.
-- **Progress is the Gig Card filling in**, not a sidebar of seventeen steps. Show what is already verified, what this step adds, and what is queued.
+- **Progress is the Liwip BGV Card filling in**, not a sidebar of seventeen steps. Show what is already verified, what this step adds, and what is queued.
 - Every screen carries a persistent right rail (desktop) or collapsed summary (mobile) showing card state. It is context, not decoration — it must show real status, never filler.
 
 ---
@@ -169,7 +171,7 @@ Never set a form label in Geist, and never set a sentence in Geist Mono.
 
 One blue, used as a large soft radial field. Never a blurred shape, never a second hue.
 
-Allowed: marketing hero, a framed hero figure, at most one feature card, the closing black band, the dark entry screen (§13).
+Allowed: marketing hero, a framed hero figure, at most one feature card, the closing black band, the entry screens (§13, rising from below), and the welcome back screens R1/R1b (a soft field from the top).
 
 Forbidden: any form surface, any table, any panel a worker reads or types into, and behind any text smaller than display size.
 
@@ -179,6 +181,7 @@ Forbidden: any form surface, any table, any panel a worker reads or types into, 
 
 - Interactive feedback is a colour change only: `color`, `background-color`, `border-color`, `opacity`, 140ms ease. Nothing scales or lifts.
 - **Screen-to-screen transitions** are the one movement allowed: a 28px horizontal slide with a crossfade in the direction of travel, 280ms in and 160ms out, ease `[0.22, 1, 0.36, 1]`. Built with Motion (`motion/react`) in `components/onboarding/onboarding-flow.tsx`. Elements inside a screen do not animate in.
+- **Entry glow, first visit only:** the bloom on the entry screen rises 22% and fades in over 1.8s (250ms delay, ease `[0.16, 1, 0.3, 1]`). A `liwip-entry-seen` flag in `localStorage` keeps later visits static.
 - The Checking state is the only thing that animates continuously (icon spin, 1.2s linear).
 - `prefers-reduced-motion: reduce` collapses every animation and transition. Screen transitions drop the slide and keep a short fade. Keep the block in `globals.css` intact, and make new animation respect it.
 
@@ -186,7 +189,7 @@ Forbidden: any form surface, any table, any panel a worker reads or types into, 
 
 ## 9. Icons
 
-Lucide (`lucide-react`), stroke 1.5–1.7 at figure size, 2.2–3.2 for small inline marks, `stroke-linecap="square"` to match the zero-radius language. Never a bare CSS square as a stand-in — an outlined square next to green text reads as an unchecked checkbox. The filled squares in the kicker and the Gig Card header carry no state and are the exception.
+Lucide (`lucide-react`), stroke 1.5–1.7 at figure size, 2.2–3.2 for small inline marks, `stroke-linecap="square"` to match the zero-radius language. Never a bare CSS square as a stand-in — an outlined square next to green text reads as an unchecked checkbox. The filled squares in the kicker and the Liwip BGV Card header carry no state and are the exception.
 
 ---
 
@@ -217,7 +220,7 @@ Tailwind v4, light only for the product. There is no `.dark` block and no dark v
 
 The one exception is the **entry screen dark mode** (see §13). It is a single marketing surface with fixed values, not a theme. Do not build a global dark mode from it.
 
-Paste the token block from `Liwip shadcn Tokens.dc.html` into `app/globals.css`, replacing the `:root` and `@theme inline` blocks the CLI wrote. If the shadcn CLI rewrites them later, restore the Liwip values.
+The `:root` values in `app/globals.css` are the OKLCH block from `Liwip shadcn Tokens.dc.html`; the onboarding extension tokens are hex. Paste the token block from `Liwip shadcn Tokens.dc.html` into `app/globals.css`, replacing the `:root` and `@theme inline` blocks the CLI wrote. If the shadcn CLI rewrites them later, restore the Liwip values.
 
 Components needing real edits:
 - **Button**: mono uppercase labels, ink secondary, every size at least 48px tall.
@@ -249,20 +252,20 @@ Reference: `Liwip Onboarding.dc.html`. Artboards are 360 × 760. Flow: 01 Entry 
 - Blocked primary text is `--muted-foreground` on `--disabled`, not `#8A8C93` (2.8:1).
 - Unchecked radio and checkbox edges are `--control`, not `#C4C5CB` or `#B9BAC1` (under 3:1).
 - Every badge carries an icon. "In progress" on worker home uses the In queue treatment, not amber: amber means a human is reviewing.
-- R1 and R1b have no gradient: they are not on the §7 allowed list and it sat behind small text.
-- Worker home is white, separated by rules, not a `--paper` ground.
-- Quick sign-in copy says "your phone's screen lock" instead of naming fingerprint, face or PIN.
-- HELP is left out of the worker home top bar until it has a destination.
+- Quick sign-in copy says "your phone's screen lock" instead of naming fingerprint, face or PIN. The design's copy names them, which the passkey rule below forbids.
+- The HELP chip on worker home shows only when `NEXT_PUBLIC_ONBOARDING_HELP_URL` is set; there is no help destination yet.
+- Worker home says "1 check verified" until a work type is chosen, instead of `1 / 8 checks`: the total depends on the package.
+- Entry 2a (light) follows the `.dc.html` artboard. `DESIGN-CHANGES.md` describes a different 2a (top-right bloom, `FOR GIG WORKERS`, card preview) without its description copy; 1b is the one that ships.
 
 ### Screen shell
 
-Every screen is the same three-part column. Do not invent a fourth.
+Every screen is the same three-part column. Do not invent a fourth. **Header and footer are fixed; only the body scrolls.** The shell is the height of the visible viewport (`--app-height`, set from `visualViewport`, falling back to `100dvh`) and a flex column. Header and footer are `flex:none`, never `position:fixed`. The body is `flex:1; min-height:0; overflow-y:auto; overscroll-behavior:contain`. The page itself never scrolls, so the browser toolbar does not collapse mid-task.
 
 | Part | Spec |
 |---|---|
 | Top bar | 52px, 1px bottom rule. Left: back button (44 × 44 hit area) or logo. Centre: step label, mono 10.5px, e.g. `SIGN IN · 1 OF 2`. Right: language chip, 32px, 1px border. |
 | Progress | Five 3px segments, 3px gap, 12px below the top bar. Done = `--state-verified`, current = `--primary`, ahead = `#E7E7EA`. One segment per stage: Sign in, Your work, Your details, Confirm & pay, Result. |
-| Body | 20px side padding, 24–28px top. Title 28px / 500 / −2.4%, then one line of instruction in 14.5–15px `--muted-foreground`. |
+| Body | 20px side padding, 24–28px top. Title 28px / 500 / −2.4%, then one line of instruction in 14.5–15px `--secondary-text`. |
 | Footer | Pinned. 1px top rule, 16px / 20px / 22px padding. One primary button, optionally one secondary below it, 10px gap. |
 
 ### Buttons
@@ -285,9 +288,20 @@ Every screen is the same three-part column. Do not invent a fourth.
 - OTP: six 58px cells, 8px gap. Filled cell 1px `--foreground`. Active cell 1px `--primary` + 1.5px outline at 2px offset + caret. Empty cell `--paper` fill, `--border` edge.
 - Under the OTP: `WAITING FOR SMS` badge (checking state) left, `RESEND IN 0:24` mono tabular right.
 
-### Gig Card (mini)
+### Keyboard open (03b, 04b)
 
-Used on entry, number verified, worker home, returning. 1px `--foreground` frame; ink header strip with 9px blue square, `GIG CARD` and the application ID; rows of check name + state badge, or an 8-segment 6px bar for overview. Locked variant (R1b) replaces the ID with a lock icon and shows only a count.
+On a 360px Android phone in Chrome, the address bar, autofill bar and keyboard leave about **347px** of page. Design for that, not for 760.
+
+1. **The keyboard's action key is the CTA.** Every input sits in a `<form>` with `enterkeyhint` (`send` for mobile number, `done` for OTP) and submits on Enter.
+2. **Auto-submit where the length is fixed.** OTP checks itself on the 6th digit. On 04b there is no CTA, only "Checks automatically at 6 digits" and resend.
+3. **Compact mode while the keyboard is open.** Top bar 44px, chip 28px, progress 8px below the top bar, title 22px on one line, long instruction hidden, helper cut to one line, input 52px, footer padding 10px, CTA 48px. Mobile number uses the shorter title "Your mobile number" and helper "One SMS with a 6-digit code."
+4. **Keep the footer in the flow.** `interactive-widget=resizes-content` in the viewport (set in `app/layout.tsx`) and the shell above.
+5. **Detecting keyboard open.** `Screen` sets `data-kb="open"` when a text field is focused on a touch device, or when `visualViewport.height` is clearly shorter than `window.innerHeight` (iOS Safari ignores `interactive-widget`). Compact styles use the `group-data-[kb=open]/shell:` variant.
+6. Mobile number: the 10th digit enables the CTA but never auto-sends. A wrong number costs an SMS and a wait.
+
+### Liwip BGV Card (mini)
+
+"Liwip BGV Card" is renamed **Liwip BGV Card** everywhere: copy, header strip, code (`BgvCard`). Used on entry, number verified, worker home, returning. 1px `--foreground` frame; ink header strip with 9px blue square, `LIWIP BGV CARD` and the application ID; rows of check name + state badge, or an 8-segment 6px bar for overview. Locked variant (R1b) replaces the ID with a lock icon and shows only a count.
 
 ### Entry dark mode (1b)
 

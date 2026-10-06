@@ -142,17 +142,17 @@ export function EditorialHome({ packages, backendReady, hasDraft, onWorker, onOr
             <div>
               <h2 id="traction-title">Building <em className="editorial-punchline">trust</em> across India&apos;s <em className="editorial-punchline">fastest-growing platforms.</em></h2>
               <p>
-                We&apos;re transforming background verification from a one-off corporate gatekeeper into a portable asset that empowers workers and simplifies onboarding for platforms. Completed checks become a portable LIWIP Gig Card, easy to present and simple to verify.
+                We&apos;re transforming background verification from a one-off corporate gatekeeper into a portable asset that empowers workers and simplifies onboarding for platforms. Completed checks become a portable Liwip BGV Card, easy to present and simple to verify.
               </p>
               <a
                 className="editorial-button editorial-button-primary"
                 href="?as=worker"
                 onClick={(e) => handleDoorClick(e, onWorker)}
               >
-                {hasDraft ? "Continue verification" : "Get your Gig Card"} <span aria-hidden="true">→</span>
+                {hasDraft ? "Continue verification" : "Get your Liwip BGV Card"} <span aria-hidden="true">→</span>
               </a>
             </div>
-            <div className="editorial-card-visual" aria-label="Example LIWIP Gig Card">
+            <div className="editorial-card-visual" aria-label="Example Liwip BGV Card">
               <div
                 className="card-photo-crop"
                 onMouseMove={handleCardMouseMove}

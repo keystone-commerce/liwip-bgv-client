@@ -4,7 +4,7 @@ Worker-facing Next.js app for the Liwip background-verification platform. Worker
 
 ## Design
 
-**Read [DESIGN.md](DESIGN.md) before any UI work.** It holds the design system: tokens, the five verification states, type, forms, flow, writing and accessibility rules, and the mobile onboarding patterns (screen shell, OTP, passkeys, consent). It overrides any default styling habit, including shadcn defaults.
+**Read [DESIGN.md](DESIGN.md) before any UI work.** It holds the design system: tokens, the five verification states, type, forms, flow, writing and accessibility rules, and the mobile onboarding patterns (screen shell, keyboard-open mode, OTP, passkeys, consent). It overrides any default styling habit, including shadcn defaults.
 
 Keep `DESIGN.md` and the tokens in `app/globals.css` in sync. If you change a value in one, change it in the other in the same commit.
 
@@ -42,6 +42,8 @@ The backend is the sibling repo `../liwip-bgv-apis` (NestJS verification API). S
 
 `NEXT_PUBLIC_ONBOARDING_TEST_MODE` lets reviewers tap through every screen without typing: blocked buttons stay enabled and empty answers fall back to demo values. It is on by default in development and off in production unless set to `true`. Set it to `false` to test validation locally. A "Test mode" tag shows on screen while it is on.
 
+`NEXT_PUBLIC_ONBOARDING_HELP_URL` sets where the HELP chip on worker home goes; the chip is hidden until it is set.
+
 In development, `?step=<screen>` opens any screen directly with demo data (`otp`, `home`, `package`, `consent`, `returning`, …), `?entry=light` shows the light entry (2a) instead of the default dark one (1b), and `?returning=r1` shows R1 instead of R1b.
 
 ## Structure
@@ -53,7 +55,7 @@ app/
   layout.tsx           Fonts (Geist, Geist Mono), metadata, skip link
 components/
   ui/                  shadcn primitives, edited to the Liwip system
-  onboarding/          New mobile onboarding: shell, screens, Gig Card, flow
+  onboarding/          New mobile onboarding: shell, screens, Liwip BGV Card, flow
   state-badge.tsx      The five verification states as badges
   portal/              Previous landing and home surfaces (served at /apply)
   primitives.tsx       Shared form, status and feedback components

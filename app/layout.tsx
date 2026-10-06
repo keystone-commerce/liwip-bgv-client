@@ -1,4 +1,4 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 import { cn } from "@/lib/utils";
@@ -26,9 +26,12 @@ export const metadata: Metadata = {
   description: "Get verified once and carry a trusted work credential across gig platforms."
 };
 
-export const viewport = {
+export const viewport: Viewport = {
   themeColor: "#FFFFFF",
-  colorScheme: "light" as const
+  colorScheme: "light",
+  // Android Chrome shrinks the layout viewport for the keyboard, so the onboarding
+  // footer stays in view (DESIGN.md §13, Keyboard open).
+  interactiveWidget: "resizes-content"
 };
 
 export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {

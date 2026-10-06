@@ -3,61 +3,83 @@
 @import "shadcn/tailwind.css";
 
 :root {
+  /* Liwip Direction 03, from Liwip shadcn Tokens.dc.html. Light only: no .dark
+     block, no dark variant. Zero radius is deliberate. Hex equivalents and roles
+     are in DESIGN.md §2. */
   color-scheme: light;
   --radius: 0rem;
-  --background: #fff;
-  --foreground: #0b0b0c;
-  --card: #fff;
-  --card-foreground: #0b0b0c;
-  --popover: #fff;
-  --popover-foreground: #0b0b0c;
-  --primary: #2c62f6;
-  --primary-foreground: #fff;
-  --secondary: #fafafa;
-  --secondary-foreground: #0b0b0c;
-  --muted: #fafafa;
-  --muted-foreground: #62646c;
-  --accent: #eef2fe;
-  --accent-foreground: #1b46c4;
-  --destructive: #be2e0c;
-  --destructive-foreground: #fff;
-  --border: #e4e4e7;
-  --input: #e4e4e7;
-  --ring: #2c62f6;
+
+  /* surfaces */
+  --background: oklch(1 0 0);
+  --foreground: oklch(0.1500 0.0021 286.14);
+  --card: oklch(1 0 0);
+  --card-foreground: oklch(0.1500 0.0021 286.14);
+  --popover: oklch(1 0 0);
+  --popover-foreground: oklch(0.1500 0.0021 286.14);
+
+  /* the one accent */
+  --primary: oklch(0.5555 0.2287 264.54);
+  --primary-foreground: oklch(1 0 0);
+
+  /* quiet surfaces */
+  --secondary: oklch(0.9851 0 0);
+  --secondary-foreground: oklch(0.1500 0.0021 286.14);
+  --muted: oklch(0.9851 0 0);
+  --muted-foreground: oklch(0.5042 0.0129 274.71);
+  --accent: oklch(0.9616 0.0166 271.24);
+  --accent-foreground: oklch(0.4544 0.2016 264.65);
+
+  /* failure */
+  --destructive: oklch(0.5269 0.1850 33.45);
+  --destructive-foreground: oklch(1 0 0);
+
+  /* edges */
+  --border: oklch(0.9197 0.0040 286.32);
+  --input: oklch(0.9197 0.0040 286.32);
+  --ring: oklch(0.5555 0.2287 264.54);
+
+  /* charts read as verification outcomes, not decoration */
+  --chart-1: oklch(0.5555 0.2287 264.54);
+  --chart-2: oklch(0.4855 0.1075 158.81);
+  --chart-3: oklch(0.5078 0.1080 73.30);
+  --chart-4: oklch(0.5269 0.1850 33.45);
+  --chart-5: oklch(0.5042 0.0129 274.71);
+
+  /* sidebar */
+  --sidebar: oklch(0.9851 0 0);
+  --sidebar-foreground: oklch(0.1500 0.0021 286.14);
+  --sidebar-primary: oklch(0.5555 0.2287 264.54);
+  --sidebar-primary-foreground: oklch(1 0 0);
+  --sidebar-accent: oklch(0.9616 0.0166 271.24);
+  --sidebar-accent-foreground: oklch(0.4544 0.2016 264.65);
+  --sidebar-border: oklch(0.9197 0.0040 286.32);
+  --sidebar-ring: oklch(0.5555 0.2287 264.54);
+
+  /* extension: verification state. Five states, each text / fill / border. */
+  --state-verified: oklch(0.4855 0.1075 158.81);
+  --state-verified-bg: oklch(0.9583 0.0125 164.80);
+  --state-verified-border: oklch(0.8680 0.0386 162.27);
+  --state-review: oklch(0.5078 0.1080 73.30);
+  --state-review-bg: oklch(0.9596 0.0293 87.54);
+  --state-review-border: oklch(0.8775 0.0626 87.81);
+  --state-fix: oklch(0.5269 0.1850 33.45);
+  --state-fix-bg: oklch(0.9492 0.0198 37.03);
+  --state-fix-border: oklch(0.8498 0.0553 37.98);
+  --state-checking: oklch(0.4544 0.2016 264.65);
+  --state-checking-bg: oklch(0.9616 0.0166 271.24);
+  --state-checking-border: oklch(0.8809 0.0548 269.31);
+  --state-queued: oklch(0.4574 0.0116 273.17);
+  --state-queued-bg: oklch(0.9647 0.0027 286.35);
+  --state-queued-border: oklch(0.9197 0.0040 286.32);
+
+  /* extension: onboarding (DESIGN.md §2, Onboarding tokens) */
+  --secondary-text: #55575e;
   --paper: #fafafa;
   --line-soft: #eeeef1;
   --blue-line: #c9d7fd;
   --track: #e7e7ea;
   --disabled: #e9e9ec;
   --control: #8a8c93;
-  --chart-1: #2c62f6;
-  --chart-2: #0e7148;
-  --chart-3: #8a5a00;
-  --chart-4: #be2e0c;
-  --chart-5: #55575e;
-  --sidebar: #fafafa;
-  --sidebar-foreground: #0b0b0c;
-  --sidebar-primary: #2c62f6;
-  --sidebar-primary-foreground: #fff;
-  --sidebar-accent: #eef2fe;
-  --sidebar-accent-foreground: #1b46c4;
-  --sidebar-border: #e4e4e7;
-  --sidebar-ring: #2c62f6;
-  --state-verified: #0e7148;
-  --state-verified-bg: #eaf4ef;
-  --state-verified-border: #bedccc;
-  --state-review: #8a5a00;
-  --state-review-bg: #faf1dc;
-  --state-review-border: #e8d5a8;
-  --state-fix: #be2e0c;
-  --state-fix-bg: #fbeae5;
-  --state-fix-border: #efc2b4;
-  --state-checking: #1b46c4;
-  --state-checking-bg: #eef2fe;
-  --state-checking-border: #c9d7fd;
-  --state-queued: #55575e;
-  --state-queued-bg: #f3f3f5;
-  --state-queued-border: #e4e4e7;
 }
 
 @theme inline {
@@ -73,7 +95,7 @@
   --color-accent: var(--accent); --color-accent-foreground: var(--accent-foreground);
   --color-destructive: var(--destructive); --color-destructive-foreground: var(--destructive-foreground);
   --color-border: var(--border); --color-input: var(--input); --color-ring: var(--ring);
-  --color-paper: var(--paper); --color-line-soft: var(--line-soft); --color-blue-line: var(--blue-line); --color-track: var(--track); --color-disabled: var(--disabled); --color-control: var(--control);
+  --color-secondary-text: var(--secondary-text); --color-paper: var(--paper); --color-line-soft: var(--line-soft); --color-blue-line: var(--blue-line); --color-track: var(--track); --color-disabled: var(--disabled); --color-control: var(--control);
   --color-chart-1: var(--chart-1); --color-chart-2: var(--chart-2); --color-chart-3: var(--chart-3); --color-chart-4: var(--chart-4); --color-chart-5: var(--chart-5);
   --color-sidebar: var(--sidebar); --color-sidebar-foreground: var(--sidebar-foreground); --color-sidebar-primary: var(--sidebar-primary); --color-sidebar-primary-foreground: var(--sidebar-primary-foreground); --color-sidebar-accent: var(--sidebar-accent); --color-sidebar-accent-foreground: var(--sidebar-accent-foreground); --color-sidebar-border: var(--sidebar-border); --color-sidebar-ring: var(--sidebar-ring);
   --color-state-verified: var(--state-verified); --color-state-verified-bg: var(--state-verified-bg); --color-state-verified-border: var(--state-verified-border);
