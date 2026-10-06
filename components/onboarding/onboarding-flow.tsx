@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useState } from "react";
 import { AnimatePresence, motion, useReducedMotion } from "motion/react";
-import { type LanguageCode, LANGUAGES, type WorkTypeId } from "@/lib/onboarding/data";
+import { type LanguageCode, LANGUAGES, WORK_TYPES, type WorkTypeId } from "@/lib/onboarding/data";
 import { mockOnboardingService, type OnboardingService, type ReturningWorker, type WorkerProfile } from "@/lib/onboarding/service";
 import { EntryScreen, ReturningScreen } from "./entry-screens";
 import { ChooseWorkScreen, ConsentScreen, HomeScreen, PackageScreen } from "./journey-screens";
@@ -115,6 +115,9 @@ export function OnboardingFlow({
         nextDraft = { ...nextDraft, phone: nextDraft.phone || DEMO_WORKER.phone, worker: nextDraft.worker ?? DEMO_WORKER };
         if (requested === "package" || requested === "consent") nextDraft.workType = nextDraft.workType ?? "delivery";
         if (requested === "returning") nextReturning = nextReturning ?? DEMO_RETURNING;
+        // ?work=delivery opens worker home after work is chosen and consent given (06b).
+        const work = params.get("work") as WorkTypeId | null;
+        if (work && WORK_TYPES.some((item) => item.id === work)) nextDraft = { ...nextDraft, workType: work, consentDone: true };
         nextScreen = requested;
       } else if (stored?.screen && isReachable(stored.screen, nextDraft, nextReturning)) {
         nextScreen = stored.screen;

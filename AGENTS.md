@@ -54,7 +54,7 @@ The backend is the sibling repo `../liwip-bgv-apis` (NestJS verification API). S
 
 `NEXT_PUBLIC_ONBOARDING_HELP_URL` sets where the HELP chip on worker home goes; the chip is hidden until it is set.
 
-In development, `?step=<screen>` opens any screen directly with demo data (`otp`, `home`, `package`, `consent`, `returning`, …), `?entry=light` shows the light entry (2a) instead of the default dark one (1b), and `?returning=r1` shows R1 instead of R1b.
+In development, `?step=<screen>` opens any screen directly with demo data (`otp`, `home`, `package`, `consent`, `returning`, …), `?entry=light` shows the light entry (2a) instead of the default dark one (1b), `?returning=r1` shows R1 instead of R1b, and `?step=home&work=delivery` shows worker home after work is chosen (06b).
 
 ## Structure
 

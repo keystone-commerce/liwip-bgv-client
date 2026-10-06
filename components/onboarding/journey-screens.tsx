@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { ArrowRight, Bike, Car, Clock, Factory, House, Lock, Shield, type LucideIcon } from "lucide-react";
-import { StateBadge } from "@/components/state-badge";
+import { StateBadge, type VerificationState } from "@/components/state-badge";
 import { Button } from "@/components/ui/button";
 import {
   CHECK_NAMES,
@@ -72,12 +72,19 @@ export function HomeScreen({
   onConsent: () => void;
 }) {
   const work = WORK_TYPES.find((item) => item.id === workType);
+  const pack = work ? PACKAGES[work.packageCode] : undefined;
+  const [showAllChecks, setShowAllChecks] = useState(false);
+  // Placeholder states until the API reports them: the mobile number is verified, the rest wait.
+  const checks = (pack?.checks ?? []).map((id) => ({ id, state: (id === "mobile" ? "verified" : "queued") as VerificationState }));
+  const verifiedCount = checks.filter((check) => check.state === "verified").length;
+  // Home keeps the card short: four rows, then a link to the rest (DESIGN.md §13, 06b).
+  const visibleChecks = showAllChecks ? checks : checks.slice(0, 4);
 
   const next: NextStep = !work
     ? { title: "Choose the work you do", detail: "This decides which checks you need and the price. About 1 minute.", onStart: onChooseWork }
     : !consentDone
       ? { title: "Approve your checks", detail: "Say yes to each check before it runs. About 1 minute.", onStart: onConsent }
-      : { title: "Share your details", detail: "DigiLocker first, typing only if needed.", href: "/apply?as=worker" };
+      : { title: "Share your details", detail: "Use DigiLocker to skip typing. About 5 minutes.", href: "/apply?as=worker" };
 
   const stepIndex = !work ? 0 : !consentDone ? 0 : 1;
   // Application progress counts only the five main stages, the same for every work type.
@@ -99,15 +106,40 @@ export function HomeScreen({
         <div className="border-b border-border bg-background px-5 pt-6 pb-[22px]">
           <Kicker className="tracking-[0.12em]">Namaste</Kicker>
           <Title className="mt-1.5 mb-5">{worker.fullName}</Title>
-          {/* The card is a list of what is verified, never a count: a count reads as if the
-              card is issued at the end (DESIGN.md §13, 06). */}
+          {/* Before work is chosen the card lists what is verified, with no count: a count would
+              read as if the card is issued at the end (06). Once the package is known it lists the
+              package's checks with their states and an "N of M verified" count (06b). */}
           <div className="border-t border-line-soft pt-4">
-            <Kicker className="tracking-[0.12em]">Liwip BGV Card</Kicker>
-            <div className="mt-2.5 flex flex-wrap items-center gap-2.5">
-              <span className="tabular font-mono text-[13px] font-medium">+91 {formatPhone(worker.phone)}</span>
-              <StateBadge state="verified" />
-            </div>
-            {!work && <p className="mt-2.5 mb-0 text-[13px] leading-[1.5] text-secondary-text">Choose your work to see which checks you need.</p>}
+            {pack && work ? (
+              <>
+                <div className="flex items-center justify-between gap-2.5">
+                  <Kicker className="tracking-[0.12em]">Liwip BGV Card · {pack.name}</Kicker>
+                  <span className="tabular label-mono tracking-normal text-secondary-text">
+                    {verifiedCount} of {checks.length} verified
+                  </span>
+                </div>
+                <ul className="mt-1.5 mb-0 list-none p-0">
+                  {visibleChecks.map((check) => (
+                    <li key={check.id} className="flex items-center justify-between gap-2.5 border-b border-line-soft py-[9px] last:border-b-0">
+                      <span className="text-[13.5px]">{CHECK_NAMES[check.id].split(" · ")[0]}</span>
+                      <StateBadge state={check.state} className="shrink-0" />
+                    </li>
+                  ))}
+                </ul>
+                {!showAllChecks && checks.length > visibleChecks.length && (
+                  <TextAction onClick={() => setShowAllChecks(true)} className="min-h-10">See all {checks.length} checks</TextAction>
+                )}
+              </>
+            ) : (
+              <>
+                <Kicker className="tracking-[0.12em]">Liwip BGV Card</Kicker>
+                <div className="mt-2.5 flex flex-wrap items-center gap-2.5">
+                  <span className="tabular font-mono text-[13px] font-medium">+91 {formatPhone(worker.phone)}</span>
+                  <StateBadge state="verified" />
+                </div>
+                <p className="mt-2.5 mb-0 text-[13px] leading-[1.5] text-secondary-text">Choose your work to see which checks you need.</p>
+              </>
+            )}
           </div>
         </div>
 
@@ -115,10 +147,8 @@ export function HomeScreen({
           <Kicker className="mb-2.5 tracking-[0.12em]">Your next step</Kicker>
           <div className="border border-foreground bg-background">
             <div className="px-4 pt-4 pb-3.5">
-              <div className="flex flex-wrap items-center justify-between gap-x-2 gap-y-2">
-                <span className="tabular label-mono tracking-[0.04em] whitespace-nowrap text-secondary-text">Application · Step {applicationStage} of {STAGES.length}</span>
-                <StateBadge state="queued" label="In progress" className="shrink-0 px-1.5 tracking-[0.06em]" />
-              </div>
+              {/* "Your next step" already says it is in progress, so no badge (DESIGN.md §13, 06). */}
+              <span className="tabular label-mono tracking-[0.08em] text-secondary-text">Step {applicationStage} of {STAGES.length}</span>
               <h2 className="mt-3 mb-1 text-[19px] font-medium tracking-[-0.015em]">{next.title}</h2>
               <p className="m-0 text-[13.5px] leading-[1.55] text-secondary-text">{next.detail}</p>
             </div>
