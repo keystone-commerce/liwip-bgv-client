@@ -97,14 +97,15 @@ export function HomeScreen({
         <div className="border-b border-border bg-background px-5 pt-6 pb-[22px]">
           <Kicker className="tracking-[0.12em]">Namaste</Kicker>
           <Title className="mt-1.5 mb-3.5">{worker.fullName}</Title>
-          <div className="mb-2 flex items-baseline justify-between">
-            <span className="text-[13.5px] text-secondary-text">Liwip BGV Card</span>
-            <span className="tabular font-mono text-[12px] font-medium">{total ? `1 / ${total} checks` : "1 check verified"}</span>
+          {/* Card label with the verified count in a pill, 10px after it (DESIGN.md §13, 06). */}
+          <div className="flex flex-wrap items-center gap-2.5">
+            <span className="text-[14px] font-medium">Liwip BGV Card</span>
+            <StateBadge state="verified" label="1 verified" className="tabular" />
           </div>
           {total ? (
-            <CheckBar states={pack.checks.map((check) => (check === "mobile" ? "verified" : "queued"))} />
+            <CheckBar className="mt-2.5" states={pack.checks.map((check) => (check === "mobile" ? "verified" : "queued"))} />
           ) : (
-            <p className="m-0 text-[13px] text-secondary-text">Your checks appear here once you choose your work.</p>
+            <p className="mt-1.5 mb-0 text-[13px] text-secondary-text">Your checks appear here once you choose your work.</p>
           )}
         </div>
 

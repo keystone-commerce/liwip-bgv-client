@@ -253,7 +253,7 @@ Reference: `Liwip Onboarding.dc.html`. Artboards are 360 × 760. Flow: 01 Entry 
 - Unchecked radio and checkbox edges are `--control`, not `#C4C5CB` or `#B9BAC1` (under 3:1).
 - Every badge carries an icon. "In progress" on worker home uses the In queue treatment, not amber: amber means a human is reviewing.
 - The HELP chip on worker home shows only when `NEXT_PUBLIC_ONBOARDING_HELP_URL` is set; there is no help destination yet.
-- Worker home says "1 check verified" until a work type is chosen, instead of `1 / 8 checks`: the total depends on the package.
+- Worker home: "Liwip BGV Card" is followed by a `1 VERIFIED` pill and the line "Your checks appear here once you choose your work." The design shows only this state; once a work type is chosen the line is replaced by the package's check bar, since the checks are then known.
 - Entry 2a (light) follows the `.dc.html` artboard. `DESIGN-CHANGES.md` describes a different 2a (top-right bloom, `FOR GIG WORKERS`, card preview) without its description copy; 1b is the one that ships.
 
 ### Screen shell
@@ -300,7 +300,7 @@ On a 360px Android phone in Chrome, the address bar, autofill bar and keyboard l
 
 ### Liwip BGV Card (mini)
 
-"Liwip BGV Card" is renamed **Liwip BGV Card** everywhere: copy, header strip, code (`BgvCard`). Used on entry, number verified, worker home, returning. 1px `--foreground` frame; ink header strip with 9px blue square, `LIWIP BGV CARD` and the **card number** (not the application ID). The card number is issued when the mobile number is verified and stays with the worker, so the digital and physical card carry the same number; the application ID belongs to one verification case and is for support and the backend. A row that is not done yet names the next action and says what it adds, for example `Pick your work` / "Decides which checks go on your card" / `NEXT`; rows of check name + state badge, or an 8-segment 6px bar for overview. Locked variant (R1b) replaces the ID with a lock icon and shows only a count.
+"Liwip BGV Card" is renamed **Liwip BGV Card** everywhere: copy, header strip, code (`BgvCard`). Used on entry, number verified, worker home, returning. 1px `--foreground` frame; ink header strip with 9px blue square, `LIWIP BGV CARD` and the **card number** (not the application ID). The card number is issued when the mobile number is verified and stays with the worker, so the digital and physical card carry the same number; the application ID belongs to one verification case and is for support and the backend. A row that is not done yet names the next action, for example `Choose the work you do` / `NEXT`; rows of check name + state badge, or an 8-segment 6px bar for overview. Locked variant (R1b) replaces the ID with a lock icon and shows only a count.
 
 ### Entry dark mode (1b)
 
