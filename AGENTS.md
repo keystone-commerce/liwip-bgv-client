@@ -33,6 +33,16 @@ Run `pnpm typecheck` and `pnpm lint` before calling a change done. Run `pnpm bui
 
 The backend is the sibling repo `../liwip-bgv-apis` (NestJS verification API). Start it with `npm run dev:api`; the client expects it at `VERIFICATION_API_URL` (default `http://localhost:3001`).
 
+### Testing on a real phone
+
+`https://dev-bgv.liwip.com` is a permanent tunnel to `pnpm dev` on the developer's Mac, with live reload. It is password protected.
+
+- **Relay:** a `t4g.nano` EC2 instance in `ap-south-1` (tagged `liwip-dev-tunnel`, Elastic IP `43.204.196.10`) running Caddy, which serves HTTPS and proxies to port 8005.
+- **Mac side:** the launchd agent `com.liwip.dev-tunnel` keeps `ssh -R 8005:localhost:3005` open and reconnects on its own. Logs go to `~/Library/Logs/liwip-dev-tunnel.log`.
+- **Local files:** SSH key `~/.ssh/liwip-dev-tunnel`, site login and AWS resource IDs in `~/.config/liwip-dev-tunnel/`. None of these are in the repo.
+- `next.config.ts` lists the host in `allowedDevOrigins`; live reload breaks without it.
+- When `pnpm dev` is not running, the site answers 502 with a short message.
+
 ## Routes
 
 - `/` — the mobile onboarding (`components/onboarding/`): entry, language, mobile, OTP, number verified, quick sign-in, worker home, choose work, package, consent, and the returning screens. It runs on the placeholder service in `lib/onboarding/service.ts` and is not connected to the API yet.
