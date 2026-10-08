@@ -5,7 +5,14 @@
 import type { CardCheck, LanguageCode } from "./data";
 
 export interface WorkerProfile {
+  /** The verification case. Used with the backend and support, not shown on the card. */
   applicationId: string;
+  /**
+   * Liwip BGV Card number. Issued when the mobile number is verified and kept for the
+   * life of the card, so the digital and physical card carry the same number.
+   * Format is a placeholder until product confirms it (DESIGN.md §14).
+   */
+  cardNumber: string;
   firstName: string;
   fullName: string;
   phone: string;
@@ -35,7 +42,8 @@ export interface OnboardingService {
   forgetDevice(): Promise<void>;
 }
 
-const RETURNING_KEY = "liwip-onboarding-returning";
+// Versioned with the stored shape (v2: cardNumber); older entries are ignored.
+const RETURNING_KEY = "liwip-onboarding-returning-v2";
 const wait = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
 
 function readStorage<T>(key: string): T | null {
@@ -66,7 +74,7 @@ export const mockOnboardingService: OnboardingService = {
   async verifyOtp(phone, code) {
     await wait(600);
     if (code === "000000") return { ok: false, reason: "wrong-code" };
-    return { ok: true, worker: { applicationId: "APP-240916", firstName: "Sandeep", fullName: "Sandeep Meena", phone } };
+    return { ok: true, worker: { applicationId: "APP-240916", cardNumber: "LBC 2409 1673", firstName: "Sandeep", fullName: "Sandeep Meena", phone } };
   },
 
   async enableQuickSignIn(worker) {

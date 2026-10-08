@@ -4,7 +4,7 @@ Worker-facing Next.js app for the Liwip background-verification platform. Worker
 
 ## Design
 
-**Read [DESIGN.md](DESIGN.md) before any UI work.** It holds the design system: tokens, the five verification states, type, forms, flow, writing and accessibility rules, and the mobile onboarding patterns (screen shell, OTP, passkeys, consent). It overrides any default styling habit, including shadcn defaults.
+**Read [DESIGN.md](DESIGN.md) before any UI work.** It holds the design system: tokens, the five verification states, type, forms, flow, writing and accessibility rules, and the mobile onboarding patterns (screen shell, keyboard-open mode, OTP, passkeys, consent). It overrides any default styling habit, including shadcn defaults.
 
 Keep `DESIGN.md` and the tokens in `app/globals.css` in sync. If you change a value in one, change it in the other in the same commit.
 
@@ -33,6 +33,16 @@ Run `pnpm typecheck` and `pnpm lint` before calling a change done. Run `pnpm bui
 
 The backend is the sibling repo `../liwip-bgv-apis` (NestJS verification API). Start it with `npm run dev:api`; the client expects it at `VERIFICATION_API_URL` (default `http://localhost:3001`).
 
+### Testing on a real phone
+
+`https://dev-bgv.liwip.com` is a permanent tunnel to `pnpm dev` on the developer's Mac, with live reload. It has no login: anyone with the link reaches the dev server while `pnpm dev` is running, so never run it with real worker data or production secrets.
+
+- **Relay:** a `t4g.nano` EC2 instance in `ap-south-1` (tagged `liwip-dev-tunnel`, Elastic IP `43.204.196.10`) running Caddy, which serves HTTPS and proxies to port 8005.
+- **Mac side:** the launchd agent `com.liwip.dev-tunnel` keeps `ssh -R 8005:localhost:3005` open and reconnects on its own. Logs go to `~/Library/Logs/liwip-dev-tunnel.log`.
+- **Local files:** SSH key `~/.ssh/liwip-dev-tunnel` and AWS resource IDs in `~/.config/liwip-dev-tunnel/`. Neither is in the repo.
+- `next.config.ts` lists the host in `allowedDevOrigins`; live reload breaks without it.
+- When `pnpm dev` is not running, the site answers 502 with a short message.
+
 ## Routes
 
 - `/` — the mobile onboarding (`components/onboarding/`): entry, language, mobile, OTP, number verified, quick sign-in, worker home, choose work, package, consent, and the returning screens. It runs on the placeholder service in `lib/onboarding/service.ts` and is not connected to the API yet.
@@ -42,7 +52,9 @@ The backend is the sibling repo `../liwip-bgv-apis` (NestJS verification API). S
 
 `NEXT_PUBLIC_ONBOARDING_TEST_MODE` lets reviewers tap through every screen without typing: blocked buttons stay enabled and empty answers fall back to demo values. It is on by default in development and off in production unless set to `true`. Set it to `false` to test validation locally. A "Test mode" tag shows on screen while it is on.
 
-In development, `?step=<screen>` opens any screen directly with demo data (`otp`, `home`, `package`, `consent`, `returning`, …), `?entry=light` shows the light entry (2a) instead of the default dark one (1b), and `?returning=r1` shows R1 instead of R1b.
+`NEXT_PUBLIC_ONBOARDING_HELP_URL` sets where the HELP chip on worker home goes; the chip is hidden until it is set.
+
+In development, `?step=<screen>` opens any screen directly with demo data (`otp`, `home`, `package`, `consent`, `returning`, …), `?entry=light` shows the light entry (2a) instead of the default dark one (1b), `?returning=r1` shows R1 instead of R1b, and `?step=home&work=delivery` shows worker home after work is chosen (06b).
 
 ## Structure
 
@@ -53,7 +65,7 @@ app/
   layout.tsx           Fonts (Geist, Geist Mono), metadata, skip link
 components/
   ui/                  shadcn primitives, edited to the Liwip system
-  onboarding/          New mobile onboarding: shell, screens, Gig Card, flow
+  onboarding/          New mobile onboarding: shell, screens, Liwip BGV Card, flow
   state-badge.tsx      The five verification states as badges
   portal/              Previous landing and home surfaces (served at /apply)
   primitives.tsx       Shared form, status and feedback components

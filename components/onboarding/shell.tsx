@@ -1,6 +1,6 @@
 "use client";
 
-import type { ReactNode } from "react";
+import { useEffect, useState, type ReactNode } from "react";
 import { ArrowLeft, ArrowRight, Check, LoaderCircle, type LucideIcon, type LucideProps } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
@@ -12,18 +12,72 @@ export function Icon({ icon: Glyph, ...props }: { icon: LucideIcon } & LucidePro
   return <Glyph aria-hidden="true" strokeLinecap="square" strokeLinejoin="miter" {...props} />;
 }
 
-/** One mobile column. On wider screens it sits in a sheet with 1px side rules. */
+const TEXT_FIELD = "input:not([type=checkbox]):not([type=radio]), textarea";
+
+/**
+ * Keyboard-open detection (DESIGN.md §13, Keyboard open). Android Chrome resizes the
+ * layout viewport (interactive-widget=resizes-content), iOS Safari only shrinks the
+ * visual viewport, so the shell height follows visualViewport and "open" is a text
+ * field focused on a touch device, or the visual viewport clearly shorter than the window.
+ */
+function useKeyboardOpen() {
+  const [open, setOpen] = useState(false);
+  useEffect(() => {
+    const viewport = window.visualViewport;
+    const touch = window.matchMedia("(pointer: coarse)").matches;
+    let fieldFocused = document.activeElement instanceof Element && document.activeElement.matches(TEXT_FIELD);
+
+    function update() {
+      const height = viewport?.height ?? window.innerHeight;
+      document.documentElement.style.setProperty("--app-height", `${Math.round(height)}px`);
+      const shrunk = viewport ? viewport.height < window.innerHeight - 120 : false;
+      setOpen(touch && (fieldFocused || shrunk));
+    }
+    function onFocusIn(event: FocusEvent) {
+      fieldFocused = event.target instanceof Element && event.target.matches(TEXT_FIELD);
+      update();
+    }
+    function onFocusOut() {
+      // Focus may be moving to another field; read it once the move has landed.
+      requestAnimationFrame(() => {
+        fieldFocused = document.activeElement instanceof Element && document.activeElement.matches(TEXT_FIELD);
+        update();
+      });
+    }
+
+    update();
+    viewport?.addEventListener("resize", update);
+    window.addEventListener("resize", update);
+    document.addEventListener("focusin", onFocusIn);
+    document.addEventListener("focusout", onFocusOut);
+    return () => {
+      viewport?.removeEventListener("resize", update);
+      window.removeEventListener("resize", update);
+      document.removeEventListener("focusin", onFocusIn);
+      document.removeEventListener("focusout", onFocusOut);
+    };
+  }, []);
+  return open;
+}
+
+/**
+ * One mobile column, the height of the visible viewport. Header and footer stay put;
+ * only the body scrolls, so the page itself never scrolls (DESIGN.md §13, Screen shell).
+ * Compact styles key off data-kb="open" through the group/shell variant.
+ */
 export function Screen({ children, className, tone = "light" }: { children: ReactNode; className?: string; tone?: "light" | "dark" }) {
+  const keyboardOpen = useKeyboardOpen();
   return (
-    <div className={cn("min-h-dvh", tone === "dark" ? "bg-foreground" : "bg-background")}>
-      {ONBOARDING_TEST_MODE && (
+    <div className={cn("h-[var(--app-height,100dvh)] overflow-hidden", tone === "dark" ? "bg-foreground" : "bg-background")}>
+      {ONBOARDING_TEST_MODE && !keyboardOpen && (
         <span className="label-mono pointer-events-none fixed right-0 bottom-0 z-50 border-t border-l border-state-review-border bg-state-review-bg px-2 py-px text-state-review">
           Test mode
         </span>
       )}
       <div
+        data-kb={keyboardOpen ? "open" : "closed"}
         className={cn(
-          "relative mx-auto flex min-h-dvh w-full max-w-[480px] flex-col overflow-hidden min-[481px]:border-x",
+          "group/shell relative mx-auto flex h-full w-full max-w-[480px] flex-col overflow-hidden min-[481px]:border-x",
           tone === "dark" ? "border-[#26262A] text-white" : "border-border",
           className
         )}
@@ -43,13 +97,13 @@ export function Logo({ tone = "light" }: { tone?: "light" | "dark" }) {
   );
 }
 
-/** 32px chip inside a 44px hit area (DESIGN.md §11 floor). */
+/** 32px chip (28px compact) inside a 44px hit area (DESIGN.md §11 floor). */
 export function LanguageChip({ code, onClick, tone = "light" }: { code: string; onClick: () => void; tone?: "light" | "dark" }) {
   return (
     <button type="button" onClick={onClick} aria-label={`Language: ${code}. Change language`} className="grid h-11 min-w-11 place-items-center">
       <span
         className={cn(
-          "label-mono flex h-8 items-center border px-2.5 tracking-[0.1em]",
+          "label-mono flex h-8 items-center border px-2.5 tracking-[0.1em] group-data-[kb=open]/shell:h-7 group-data-[kb=open]/shell:px-2",
           tone === "dark" ? "border-[#3A3A3E] text-white" : "border-border bg-background text-foreground"
         )}
       >
@@ -59,23 +113,37 @@ export function LanguageChip({ code, onClick, tone = "light" }: { code: string; 
   );
 }
 
+/** A second header chip, such as HELP on worker home. Same box as the language chip. */
+export function HeaderChip({ children, href }: { children: ReactNode; href: string }) {
+  return (
+    <a href={href} className="grid h-11 min-w-11 place-items-center">
+      <span className="label-mono flex h-8 items-center border border-border bg-background px-2.5 tracking-[0.1em] text-foreground group-data-[kb=open]/shell:h-7">
+        {children}
+      </span>
+    </a>
+  );
+}
+
 export function TopBar({
   onBack,
   step,
   right,
-  tone = "light"
+  tone = "light",
+  className
 }: {
   onBack?: () => void;
   step?: string;
   right?: ReactNode;
   tone?: "light" | "dark";
+  className?: string;
 }) {
   return (
     <header
       className={cn(
-        "relative flex h-[52px] flex-none items-center justify-between border-b",
+        "relative flex h-[52px] flex-none items-center justify-between border-b group-data-[kb=open]/shell:h-11",
         onBack ? "pr-2 pl-2" : "pr-2 pl-5",
-        tone === "dark" ? "border-[#26262A]" : "border-border bg-background"
+        tone === "dark" ? "border-[#26262A]" : "border-border bg-background",
+        className
       )}
     >
       {onBack ? (
@@ -85,7 +153,7 @@ export function TopBar({
       ) : (
         <Logo tone={tone} />
       )}
-      {step && <span className="label-mono absolute left-1/2 -translate-x-1/2 text-muted-foreground">{step}</span>}
+      {step && <span className="label-mono absolute left-1/2 -translate-x-1/2 whitespace-nowrap text-secondary-text">{step}</span>}
       <div className="flex items-center">{right}</div>
     </header>
   );
@@ -99,7 +167,11 @@ export function StageProgress({ stage, complete = false }: { stage: number; comp
     index < stage ? "done" : index === stage ? (complete ? "done" : "current") : "ahead"
   );
   return (
-    <div role="img" aria-label={`Stage ${stage + 1} of ${STAGES.length}: ${STAGES[stage]}${complete ? ", done" : ""}`} className="mt-3 flex flex-none gap-[3px] px-5">
+    <div
+      role="img"
+      aria-label={`Stage ${stage + 1} of ${STAGES.length}: ${STAGES[stage]}${complete ? ", done" : ""}`}
+      className="mt-3 flex flex-none gap-[3px] px-5 group-data-[kb=open]/shell:mt-2"
+    >
       {states.map((state, index) => (
         <span
           key={STAGES[index]}
@@ -110,27 +182,57 @@ export function StageProgress({ stage, complete = false }: { stage: number; comp
   );
 }
 
+/** The only part of a screen that scrolls. */
 export function Body({ children, className }: { children: ReactNode; className?: string }) {
-  return <main id="main" className={cn("flex flex-1 flex-col px-5 pt-7 pb-6", className)}>{children}</main>;
+  return (
+    <main
+      id="main"
+      className={cn(
+        "flex min-h-0 flex-1 flex-col overflow-y-auto overscroll-contain px-5 pt-7 pb-6 group-data-[kb=open]/shell:pt-4 group-data-[kb=open]/shell:pb-3",
+        className
+      )}
+    >
+      {children}
+    </main>
+  );
 }
 
-export function Title({ children, className }: { children: ReactNode; className?: string }) {
-  return <h1 className={cn("m-0 text-[28px] leading-[1.12] font-medium tracking-[-0.024em]", className)}>{children}</h1>;
+/** 28px title; 22px on one line while the keyboard is open, optionally with shorter `compact` text. */
+export function Title({ children, compact, className }: { children: ReactNode; compact?: ReactNode; className?: string }) {
+  return (
+    <h1
+      className={cn(
+        "m-0 text-[28px] leading-[1.12] font-medium tracking-[-0.024em] group-data-[kb=open]/shell:truncate group-data-[kb=open]/shell:text-[22px] group-data-[kb=open]/shell:leading-[1.15] group-data-[kb=open]/shell:tracking-[-0.02em]",
+        className
+      )}
+    >
+      {compact ? (
+        <>
+          <span className="group-data-[kb=open]/shell:hidden">{children}</span>
+          <span className="hidden group-data-[kb=open]/shell:inline">{compact}</span>
+        </>
+      ) : (
+        children
+      )}
+    </h1>
+  );
 }
 
+/** The long instruction under a title. Hidden while the keyboard is open. */
 export function Lead({ children, className }: { children: ReactNode; className?: string }) {
-  return <p className={cn("mt-2.5 mb-0 text-[15px] leading-[1.55] text-muted-foreground", className)}>{children}</p>;
+  return <p className={cn("mt-2.5 mb-0 text-[15px] leading-[1.55] text-secondary-text group-data-[kb=open]/shell:hidden", className)}>{children}</p>;
 }
 
 export function Kicker({ children, className }: { children: ReactNode; className?: string }) {
   return <p className={cn("label-mono m-0 text-muted-foreground", className)}>{children}</p>;
 }
 
+/** Stays in the flow below the scrolling body; never position:fixed. */
 export function Footer({ children, className }: { children: ReactNode; className?: string }) {
   return (
     <footer
       className={cn(
-        "sticky bottom-0 z-10 flex flex-none flex-col gap-2.5 border-t border-border bg-background px-5 pt-4 pb-[max(22px,env(safe-area-inset-bottom))]",
+        "relative flex flex-none flex-col gap-2.5 border-t border-border bg-background px-5 pt-4 pb-[max(22px,env(safe-area-inset-bottom))] group-data-[kb=open]/shell:py-2.5",
         className
       )}
     >
@@ -171,7 +273,7 @@ export function PrimaryAction({
       disabled={blocked}
       aria-busy={busy || undefined}
       className={cn(
-        "h-[52px] w-full gap-2.5 text-[12px] disabled:bg-disabled disabled:text-muted-foreground disabled:opacity-100",
+        "h-[52px] w-full gap-2.5 text-[12px] disabled:bg-disabled disabled:text-muted-foreground disabled:opacity-100 group-data-[kb=open]/shell:h-12",
         className
       )}
     >
@@ -280,7 +382,7 @@ export function CheckRow({
       <CheckMark checked={checked} />
       <span>
         <span className="block text-[14.5px] font-medium">{title}</span>
-        <span className="block text-[13px] text-muted-foreground">{detail}</span>
+        <span className="block text-[13px] text-secondary-text">{detail}</span>
       </span>
     </label>
   );
@@ -300,7 +402,7 @@ export function NumberedStep({ index, title, detail, active = true, tone = "ligh
       </span>
       <span>
         <span className="block text-[15px] font-medium">{title}</span>
-        <span className={cn("block text-[13px]", tone === "dark" ? "text-[#9C9EA5]" : "text-muted-foreground")}>{detail}</span>
+        <span className={cn("block text-[13px]", tone === "dark" ? "text-[#9C9EA5]" : "text-secondary-text")}>{detail}</span>
       </span>
     </li>
   );

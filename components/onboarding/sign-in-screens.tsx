@@ -1,12 +1,12 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { Check, CircleAlert, Fingerprint, MessageSquare, Users } from "lucide-react";
+import { Check, CircleAlert, Fingerprint, MessageSquare } from "lucide-react";
 import { StateBadge } from "@/components/state-badge";
 import { formatPhone, LANGUAGES, type LanguageCode } from "@/lib/onboarding/data";
 import { ONBOARDING_TEST_MODE, TEST_OTP, TEST_PHONE } from "@/lib/onboarding/test-mode";
 import { cn } from "@/lib/utils";
-import { GigCard, GigCardRow } from "./gig-card";
+import { BgvCard, BgvCardRow } from "./bgv-card";
 import {
   Body,
   ChoiceRow,
@@ -56,7 +56,7 @@ export function LanguageScreen({ value, onBack, onContinue }: { value: LanguageC
             </ChoiceRow>
           ))}
         </fieldset>
-        <p className="mt-4 mb-0 text-[13px] text-muted-foreground">You can change this any time from the top bar.</p>
+        <p className="mt-4 mb-0 text-[13px] text-secondary-text">You can change this any time from the top bar.</p>
       </Body>
       <Footer>
         <PrimaryAction onClick={() => onContinue(selected)}>Continue</PrimaryAction>
@@ -102,49 +102,59 @@ export function MobileScreen({
   }
 
   const blockedBy = !complete ? `Send code · ${10 - digits.length} ${10 - digits.length === 1 ? "digit" : "digits"} left` : invalid ? "Check the number" : undefined;
+  const canSend = !blockedBy || ONBOARDING_TEST_MODE;
 
   return (
     <Screen>
       <TopBar onBack={onBack} step="Sign in · 1 of 2" right={<LanguageChip code={language} onClick={onLanguage} />} />
       <StageProgress stage={0} />
       <Body>
-        <Title>Enter your mobile number</Title>
+        <Title compact="Your mobile number">Enter your mobile number</Title>
         <Lead className="mb-[26px]">This number becomes your worker ID. Use the one linked to your Aadhaar if you can.</Lead>
-        <label htmlFor="mobile" className="label-mono mb-2 block">Mobile number</label>
+        {/* The keyboard's action key submits; the 10th digit enables the CTA but never auto-sends. */}
+        <form
+          noValidate
+          onSubmit={(event) => {
+            event.preventDefault();
+            if (canSend && !busy) void send();
+          }}
+          className="group-data-[kb=open]/shell:mt-3.5"
+        >
+        <label htmlFor="mobile" className="label-mono mb-2 block group-data-[kb=open]/shell:sr-only">Mobile number</label>
         <div
           className={cn(
-            "flex h-14 border transition-colors focus-within:border-foreground focus-within:outline-[1.5px] focus-within:outline-offset-2 focus-within:outline-primary",
+            "flex h-14 border transition-colors focus-within:border-primary focus-within:outline-[1.5px] focus-within:outline-offset-2 focus-within:outline-primary group-data-[kb=open]/shell:h-[52px]",
             invalid ? "border-destructive focus-within:border-destructive focus-within:outline-destructive" : digits ? "border-foreground" : "border-border"
           )}
         >
-          <span className="tabular grid w-[68px] flex-none place-items-center border-r border-border bg-paper font-mono text-[16px] font-medium">+91</span>
+          <span className="tabular grid w-[68px] flex-none place-items-center border-r border-border bg-paper font-mono text-[16px] font-medium group-data-[kb=open]/shell:w-[62px] group-data-[kb=open]/shell:text-[15px]">+91</span>
           <input
             id="mobile"
             type="tel"
             inputMode="numeric"
             autoComplete="tel-national"
+            enterKeyHint="send"
             autoFocus
             placeholder="98765 43210"
             aria-invalid={invalid || undefined}
             aria-describedby={invalid ? "mobile-invalid" : undefined}
             value={formatPhone(digits)}
             onChange={(event) => setDigits(event.target.value.replace(/\D/g, "").replace(/^91(?=\d{10}$)/, "").slice(0, 10))}
-            onKeyDown={(event) => {
-              if (event.key === "Enter" && !blockedBy) void send();
-            }}
-            className="tabular min-w-0 flex-1 bg-transparent px-3.5 font-mono text-[18px] font-medium tracking-[0.06em] outline-none placeholder:font-sans placeholder:tracking-normal placeholder:text-muted-foreground"
+            className="tabular min-w-0 flex-1 bg-transparent px-3.5 font-mono text-[18px] group-data-[kb=open]/shell:text-[17px] font-medium tracking-[0.06em] outline-none placeholder:font-sans placeholder:tracking-normal placeholder:text-muted-foreground"
           />
           <span className="grid w-11 flex-none place-items-center">
             {valid && <Icon icon={Check} size={16} strokeWidth={3} className="text-state-verified" />}
             {invalid && <Icon icon={CircleAlert} size={16} strokeWidth={2.4} className="text-destructive" />}
           </span>
         </div>
+        </form>
         {invalid && <span id="mobile-invalid" className="sr-only">Indian mobile numbers start with 6, 7, 8 or 9.</span>}
         {failed && <ErrorBanner>We could not send the code. Check your connection and try again.</ErrorBanner>}
-        <div className="mt-[22px] flex items-start gap-2.5 border-t border-border pt-4">
+        <div className="mt-[22px] flex items-start gap-2.5 border-t border-border pt-4 group-data-[kb=open]/shell:hidden">
           <Icon icon={MessageSquare} size={14} strokeWidth={2} className="mt-[3px] flex-none text-muted-foreground" />
-          <p className="m-0 text-[13px] leading-[1.55] text-muted-foreground">We send one SMS with a 6-digit code. No marketing messages, ever.</p>
+          <p className="m-0 text-[13px] leading-[1.55] text-secondary-text">We send one SMS with a 6-digit code. No marketing messages, ever.</p>
         </div>
+        <p className="mt-2.5 mb-0 hidden truncate text-[13px] text-secondary-text group-data-[kb=open]/shell:block">One SMS with a 6-digit code.</p>
       </Body>
       <Footer>
         <PrimaryAction blockedBy={blockedBy} busy={busy} onClick={send}>Send code</PrimaryAction>
@@ -182,6 +192,11 @@ export function OtpScreen({
   const [error, setError] = useState<"wrong-code" | "expired" | null>(null);
   const [secondsLeft, setSecondsLeft] = useState(resendAfter);
   const inputRef = useRef<HTMLInputElement>(null);
+
+  // autoFocus can land before React attaches onFocus, so read the initial focus once.
+  useEffect(() => {
+    if (document.activeElement === inputRef.current) setFocused(true);
+  }, []);
 
   useEffect(() => {
     if (secondsLeft <= 0) return;
@@ -223,6 +238,13 @@ export function OtpScreen({
     }
   }
 
+  // The length is fixed, so the code checks itself on the 6th digit (DESIGN.md §13).
+  function enter(value: string) {
+    setError(null);
+    setCode(value);
+    if (value.length === 6 && !busy) void verify(value);
+  }
+
   async function resend() {
     setError(null);
     setCode("");
@@ -232,6 +254,7 @@ export function OtpScreen({
 
   const left = 6 - code.length;
   const activeIndex = Math.min(code.length, 5);
+  const timer = `${Math.floor(secondsLeft / 60)}:${String(secondsLeft % 60).padStart(2, "0")}`;
 
   return (
     <Screen>
@@ -239,12 +262,21 @@ export function OtpScreen({
       <StageProgress stage={0} />
       <Body>
         <Title>Enter the 6-digit code</Title>
-        <Lead className="mb-[26px] flex flex-wrap items-center gap-x-1">
-          Sent to <span className="tabular font-mono text-[14px] font-medium text-foreground">+91 {formatPhone(phone)}</span>.
-          <TextAction onClick={onChangeNumber} className="min-h-0 py-3 text-[13px] normal-case tracking-normal font-sans">Change</TextAction>
-        </Lead>
+        <p className="mt-2.5 mb-[26px] flex flex-wrap items-center gap-x-1 text-[15px] leading-[1.55] text-secondary-text group-data-[kb=open]/shell:mt-1 group-data-[kb=open]/shell:mb-3.5 group-data-[kb=open]/shell:flex-nowrap group-data-[kb=open]/shell:text-[13px]">
+          Sent to <span className="tabular font-mono text-[14px] font-medium whitespace-nowrap text-foreground group-data-[kb=open]/shell:text-[13px]">+91 {formatPhone(phone)}</span>
+          <span className="group-data-[kb=open]/shell:hidden">.</span>
+          <span className="hidden group-data-[kb=open]/shell:inline">·</span>
+          <TextAction onClick={onChangeNumber} className="min-h-0 py-3 font-sans text-[13px] tracking-normal normal-case group-data-[kb=open]/shell:py-1">Change</TextAction>
+        </p>
 
-        <div className="relative">
+        <form
+          noValidate
+          onSubmit={(event) => {
+            event.preventDefault();
+            if ((code.length === 6 || ONBOARDING_TEST_MODE) && !busy) void verify();
+          }}
+          className="relative"
+        >
           <label htmlFor="otp" className="sr-only">6-digit code</label>
           <input
             ref={inputRef}
@@ -252,22 +284,17 @@ export function OtpScreen({
             type="text"
             inputMode="numeric"
             autoComplete="one-time-code"
+            enterKeyHint="done"
             autoFocus
             maxLength={6}
             value={code}
             aria-invalid={error ? true : undefined}
             onFocus={() => setFocused(true)}
             onBlur={() => setFocused(false)}
-            onChange={(event) => {
-              setError(null);
-              setCode(event.target.value.replace(/\D/g, "").slice(0, 6));
-            }}
-            onKeyDown={(event) => {
-              if (event.key === "Enter" && code.length === 6) void verify();
-            }}
+            onChange={(event) => enter(event.target.value.replace(/\D/g, "").slice(0, 6))}
             className="absolute inset-0 z-10 h-full w-full cursor-text opacity-0"
           />
-          <div aria-hidden="true" className="grid grid-cols-6 gap-2">
+          <div aria-hidden="true" className="grid grid-cols-6 gap-2 group-data-[kb=open]/shell:gap-[7px]">
             {Array.from({ length: 6 }, (_, index) => {
               const digit = code[index];
               const active = focused && index === activeIndex && code.length < 6;
@@ -275,7 +302,7 @@ export function OtpScreen({
                 <span
                   key={index}
                   className={cn(
-                    "tabular grid h-[58px] place-items-center border font-mono text-[22px] font-medium",
+                    "tabular grid h-[58px] place-items-center border font-mono text-[22px] font-medium group-data-[kb=open]/shell:h-[52px] group-data-[kb=open]/shell:text-[20px]",
                     error ? "border-destructive" : active ? "border-primary outline-[1.5px] outline-offset-2 outline-primary" : digit ? "border-foreground" : "border-border bg-paper"
                   )}
                 >
@@ -284,7 +311,7 @@ export function OtpScreen({
               );
             })}
           </div>
-        </div>
+        </form>
 
         {error && (
           <ErrorBanner>
@@ -292,30 +319,39 @@ export function OtpScreen({
           </ErrorBanner>
         )}
 
-        <div className="mt-[18px] flex items-center justify-between">
+        <div className="mt-[18px] flex items-center justify-between group-data-[kb=open]/shell:hidden">
           <StateBadge state="checking" label="Waiting for SMS" />
           {secondsLeft > 0 ? (
-            <span className="tabular font-mono text-[11.5px] text-muted-foreground">
-              Resend in {Math.floor(secondsLeft / 60)}:{String(secondsLeft % 60).padStart(2, "0")}
-            </span>
+            <span className="tabular font-mono text-[11.5px] text-secondary-text">Resend in {timer}</span>
           ) : (
             <TextAction onClick={resend}>Resend code</TextAction>
           )}
         </div>
 
-        <p className="mt-7 mb-0 border-t border-border pt-4 text-[13px] leading-[1.55] text-muted-foreground">
+        <p className="mt-7 mb-0 border-t border-border pt-4 text-[13px] leading-[1.55] text-secondary-text group-data-[kb=open]/shell:hidden">
           Didn’t get it? Check that the number is right, then wait for the timer. You can also get the code on a call.
         </p>
       </Body>
       <Footer>
-        <PrimaryAction
-          arrow={false}
-          busy={busy}
-          blockedBy={left > 0 ? `Verify · ${left} ${left === 1 ? "digit" : "digits"} left` : undefined}
-          onClick={() => verify()}
-        >
-          Verify
-        </PrimaryAction>
+        {/* 04b: with the keyboard up there is no CTA, only a status line and resend. */}
+        <div className="flex flex-col group-data-[kb=open]/shell:hidden">
+          <PrimaryAction
+            arrow={false}
+            busy={busy}
+            blockedBy={left > 0 ? `Verify · ${left} ${left === 1 ? "digit" : "digits"} left` : undefined}
+            onClick={() => verify()}
+          >
+            Verify
+          </PrimaryAction>
+        </div>
+        <div className="hidden min-h-11 items-center justify-between gap-3 group-data-[kb=open]/shell:flex">
+          <span className="text-[13px] text-secondary-text">{busy ? "Checking the code" : "Checks automatically at 6 digits"}</span>
+          {secondsLeft > 0 ? (
+            <span className="tabular label-mono text-secondary-text">Resend {timer}</span>
+          ) : (
+            <TextAction onClick={resend}>Resend</TextAction>
+          )}
+        </div>
       </Footer>
     </Screen>
   );
@@ -323,7 +359,7 @@ export function OtpScreen({
 
 /* 05 Number verified ----------------------------------------------------- */
 
-export function VerifiedScreen({ applicationId, onContinue }: { applicationId: string; onContinue: () => void }) {
+export function VerifiedScreen({ cardNumber, onContinue }: { cardNumber: string; onContinue: () => void }) {
   return (
     <Screen>
       <TopBar />
@@ -335,13 +371,13 @@ export function VerifiedScreen({ applicationId, onContinue }: { applicationId: s
         <h1 className="mt-[22px] mb-2.5 text-[30px] leading-[1.1] font-medium tracking-[-0.026em]">
           Number verified. <span className="text-muted-foreground">Your card has started.</span>
         </h1>
-        <p className="m-0 text-[15px] leading-[1.55] text-muted-foreground">Every check you pass is added here. The card stays yours, even if you change platforms.</p>
-        <GigCard applicationId={applicationId} className="mt-[26px]">
+        <p className="m-0 text-[15px] leading-[1.55] text-secondary-text">Every check you pass is added here. The card stays yours, even if you change platforms.</p>
+        <BgvCard cardNumber={cardNumber} className="mt-[26px]">
           <div className="px-3 pt-0.5 pb-1">
-            <GigCardRow label="Mobile number" state="verified" />
-            <GigCardRow label="Checks for your work" state="queued" stateLabel="Next" muted />
+            <BgvCardRow label="Mobile number" state="verified" />
+            <BgvCardRow label="Choose the work you do" state="queued" stateLabel="Next" muted />
           </div>
-        </GigCard>
+        </BgvCard>
       </Body>
       <Footer>
         <PrimaryAction onClick={onContinue}>Continue</PrimaryAction>
@@ -377,11 +413,11 @@ export function QuickSignInScreen({ onEnable, onSkip }: { onEnable: () => Promis
         </span>
         <Title className="mt-[22px] mb-2.5">Sign in faster next time</Title>
         {/* Copy never names a biometric; the OS decides between fingerprint, face and PIN (DESIGN.md §13). */}
-        <p className="m-0 text-[15px] leading-[1.55] text-muted-foreground">No code to wait for. You unlock Liwip the same way you unlock your phone, with your phone’s screen lock.</p>
+        <p className="m-0 text-[15px] leading-[1.55] text-secondary-text">Use your phone’s screen lock instead of a code.</p>
         <div className="mt-[22px] border-t border-border">
           <p className="label-mono m-0 pt-3 pb-0.5 text-muted-foreground">One touch to</p>
           <ul className="m-0 list-none p-0">
-            {["Continue your application", "Check your results", "Show your Gig Card"].map((item) => (
+            {["Continue your application", "Check your results", "Show your Liwip BGV Card"].map((item) => (
               <li key={item} className="flex items-center gap-3 border-b border-line-soft py-[11px] text-[14px] last:border-b-0">
                 <span aria-hidden="true" className="size-[5px] flex-none bg-primary" />
                 {item}
@@ -390,10 +426,6 @@ export function QuickSignInScreen({ onEnable, onSkip }: { onEnable: () => Promis
           </ul>
         </div>
         {failed && <ErrorBanner>Quick sign-in could not be turned on. You can keep using OTP.</ErrorBanner>}
-        <div className="mt-auto flex items-start gap-2.5 border border-state-review-border bg-state-review-bg px-3.5 py-3">
-          <Icon icon={Users} size={14} strokeWidth={2} className="mt-[3px] flex-none text-state-review" />
-          <p className="m-0 text-[13px] leading-[1.5]">Shared phone? Skip this. Anyone who can unlock this phone could open your account.</p>
-        </div>
       </Body>
       <Footer>
         <PrimaryAction icon={Fingerprint} busy={busy} onClick={enable}>Turn on quick sign-in</PrimaryAction>

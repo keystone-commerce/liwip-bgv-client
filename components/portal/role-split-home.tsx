@@ -129,7 +129,7 @@ export function RoleSplitHome({ packages, backendReady, hasDraft, onWorker, onOr
             </div>
           </div>
 
-          <div className="landing-card-stage scroll-reveal" aria-label="LIWIP Gig Card preview">
+          <div className="landing-card-stage scroll-reveal" aria-label="Liwip BGV Card preview">
             <div className="landing-card-visual">
               <div
                 className="card-photo-crop"

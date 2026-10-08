@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { ArrowRight, Bike, Car, Clock, Factory, House, Lock, Shield, type LucideIcon } from "lucide-react";
-import { StateBadge } from "@/components/state-badge";
+import { StateBadge, type VerificationState } from "@/components/state-badge";
 import { Button } from "@/components/ui/button";
 import {
   CHECK_NAMES,
@@ -10,20 +10,23 @@ import {
   CONSENT_TEXT_VERSION,
   CONSENTS,
   formatInr,
+  formatPhone,
+  HELP_URL,
   PACKAGES,
+  STAGES,
   WORK_TYPES,
   type WorkTypeId
 } from "@/lib/onboarding/data";
 import type { ConsentRecord, WorkerProfile } from "@/lib/onboarding/service";
 import { ONBOARDING_TEST_MODE } from "@/lib/onboarding/test-mode";
 import { cn } from "@/lib/utils";
-import { CheckBar } from "./gig-card";
 import {
   Body,
   CheckRow,
   ChoiceRow,
   ErrorBanner,
   Footer,
+  HeaderChip,
   Icon,
   Kicker,
   LanguageChip,
@@ -70,44 +73,87 @@ export function HomeScreen({
 }) {
   const work = WORK_TYPES.find((item) => item.id === workType);
   const pack = work ? PACKAGES[work.packageCode] : undefined;
-  const total = pack?.checks.length;
+  const [showAllChecks, setShowAllChecks] = useState(false);
+  // Placeholder states until the API reports them: the mobile number is verified, the rest wait.
+  const checks = (pack?.checks ?? []).map((id) => ({ id, state: (id === "mobile" ? "verified" : "queued") as VerificationState }));
+  const verifiedCount = checks.filter((check) => check.state === "verified").length;
+  // Home keeps the card short: four rows, then a link to the rest (DESIGN.md §13, 06b).
+  const visibleChecks = showAllChecks ? checks : checks.slice(0, 4);
 
   const next: NextStep = !work
     ? { title: "Choose the work you do", detail: "This decides which checks you need and the price. About 1 minute.", onStart: onChooseWork }
     : !consentDone
       ? { title: "Approve your checks", detail: "Say yes to each check before it runs. About 1 minute.", onStart: onConsent }
-      : { title: "Share your details", detail: "DigiLocker first, typing only if needed.", href: "/apply?as=worker" };
+      : { title: "Share your details", detail: "Use DigiLocker to skip typing. About 5 minutes.", href: "/apply?as=worker" };
 
   const stepIndex = !work ? 0 : !consentDone ? 0 : 1;
+  // Application progress counts only the five main stages, the same for every work type.
+  // Sign in is done on this screen, so the worker is on "Your work" or later.
+  const applicationStage = consentDone ? 3 : 2;
 
   return (
     <Screen>
-      <TopBar right={<LanguageChip code={language} onClick={onLanguage} />} />
-      <main id="main" className="flex flex-1 flex-col">
-        <div className="border-b border-border px-5 pt-6 pb-[22px]">
+      <TopBar
+        right={
+          <>
+            <LanguageChip code={language} onClick={onLanguage} />
+            {HELP_URL && <HeaderChip href={HELP_URL}>Help</HeaderChip>}
+          </>
+        }
+      />
+      {/* Body on --paper; the greeting block and next-step card stay white (DESIGN.md §13). */}
+      <main id="main" className="flex min-h-0 flex-1 flex-col overflow-y-auto overscroll-contain bg-paper">
+        <div className="border-b border-border bg-background px-5 pt-6 pb-[22px]">
           <Kicker className="tracking-[0.12em]">Namaste</Kicker>
-          <Title className="mt-1.5 mb-3.5">{worker.fullName}</Title>
-          <div className="mb-2 flex items-baseline justify-between">
-            <span className="text-[13.5px] text-muted-foreground">Gig Card</span>
-            <span className="tabular font-mono text-[12px] font-medium">{total ? `1 / ${total} checks` : "1 check verified"}</span>
+          <Title className="mt-1.5 mb-5">{worker.fullName}</Title>
+          {/* Before work is chosen the card lists what is verified, with no count: a count would
+              read as if the card is issued at the end (06). Once the package is known it lists the
+              package's checks with their states and an "N of M verified" count (06b). */}
+          <div className="border-t border-line-soft pt-4">
+            {pack && work ? (
+              <>
+                {/* Two lines so neither part wraps at 360px: the label alone, then the work
+                    type with the count on the right (DESIGN.md §13, 06b). */}
+                <Kicker className="tracking-[0.12em]">Liwip BGV Card</Kicker>
+                <div className="mt-1.5 flex items-baseline justify-between gap-3">
+                  <span className="min-w-0 text-[17px] font-medium tracking-[-0.012em]">{work.title}</span>
+                  <span className="tabular flex-none font-mono text-[12px] font-medium whitespace-nowrap text-secondary-text">
+                    <span className="text-state-verified">{verifiedCount}</span> / {checks.length} verified
+                  </span>
+                </div>
+                <ul className="mt-1.5 mb-0 list-none p-0">
+                  {visibleChecks.map((check) => (
+                    <li key={check.id} className="flex items-center justify-between gap-2.5 border-b border-line-soft py-[9px] last:border-b-0">
+                      <span className="text-[13.5px]">{CHECK_NAMES[check.id].split(" · ")[0]}</span>
+                      <StateBadge state={check.state} className="shrink-0" />
+                    </li>
+                  ))}
+                </ul>
+                {!showAllChecks && checks.length > visibleChecks.length && (
+                  <TextAction onClick={() => setShowAllChecks(true)} className="min-h-10">See all {checks.length} checks</TextAction>
+                )}
+              </>
+            ) : (
+              <>
+                <Kicker className="tracking-[0.12em]">Liwip BGV Card</Kicker>
+                <div className="mt-2.5 flex flex-wrap items-center gap-2.5">
+                  <span className="tabular font-mono text-[13px] font-medium">+91 {formatPhone(worker.phone)}</span>
+                  <StateBadge state="verified" />
+                </div>
+                <p className="mt-2.5 mb-0 text-[13px] leading-[1.5] text-secondary-text">Choose your work to see which checks you need.</p>
+              </>
+            )}
           </div>
-          {total ? (
-            <CheckBar states={pack.checks.map((check) => (check === "mobile" ? "verified" : "queued"))} />
-          ) : (
-            <p className="m-0 text-[13px] text-muted-foreground">Your checks appear here once you choose your work.</p>
-          )}
         </div>
 
         <section className="px-5 pt-5">
           <Kicker className="mb-2.5 tracking-[0.12em]">Your next step</Kicker>
-          <div className="border border-foreground">
+          <div className="border border-foreground bg-background">
             <div className="px-4 pt-4 pb-3.5">
-              <div className="flex items-center justify-between">
-                <span className="tabular font-mono text-[11px] text-muted-foreground">{worker.applicationId}</span>
-                <StateBadge state="queued" label="In progress" />
-              </div>
+              {/* "Your next step" already says it is in progress, so no badge (DESIGN.md §13, 06). */}
+              <span className="tabular label-mono tracking-[0.08em] text-secondary-text">Step {applicationStage} of {STAGES.length}</span>
               <h2 className="mt-3 mb-1 text-[19px] font-medium tracking-[-0.015em]">{next.title}</h2>
-              <p className="m-0 text-[13.5px] leading-[1.55] text-muted-foreground">{next.detail}</p>
+              <p className="m-0 text-[13.5px] leading-[1.55] text-secondary-text">{next.detail}</p>
             </div>
             {next.href ? (
               <a href={next.href} className="label-mono flex h-[50px] items-center justify-between bg-primary px-4 text-[11.5px] text-primary-foreground hover:bg-accent-foreground">
@@ -130,7 +176,7 @@ export function HomeScreen({
           </ol>
         </section>
       </main>
-      <footer className="sticky bottom-0 flex items-center gap-2 border-t border-border bg-background px-5 pt-3 pb-[max(16px,env(safe-area-inset-bottom))] text-[13px] text-muted-foreground">
+      <footer className="flex flex-none items-center gap-2 border-t border-border bg-background px-5 pt-3 pb-[max(16px,env(safe-area-inset-bottom))] text-[13px] text-secondary-text">
         <Icon icon={Lock} size={12} strokeWidth={2} />
         Documents are stored privately. Links expire.
       </footer>
@@ -176,11 +222,11 @@ export function ChooseWorkScreen({
                 checked={checked}
                 onSelect={(id) => setSelected(id as WorkTypeId)}
                 className="min-h-[62px] gap-[13px] last:border-b-0"
-                leading={<Icon icon={WORK_ICONS[item.id]} size={20} strokeWidth={1.6} className={cn("flex-none", checked ? "text-accent-foreground" : "text-muted-foreground")} />}
+                leading={<Icon icon={WORK_ICONS[item.id]} size={20} strokeWidth={1.6} className={cn("flex-none", checked ? "text-accent-foreground" : "text-secondary-text")} />}
                 trailing={<RadioMark checked={checked} />}
               >
                 <span className="block text-[15.5px] font-medium">{item.title}</span>
-                <span className="block text-[13px] text-muted-foreground">{item.detail}</span>
+                <span className="block text-[13px] text-secondary-text">{item.detail}</span>
               </ChoiceRow>
             );
           })}
@@ -226,7 +272,7 @@ export function PackageScreen({
           <div className="flex items-end justify-between border-b border-border px-3.5 pt-3.5 pb-3">
             <div>
               <Kicker>{pack.name} package</Kicker>
-              <p className="mt-[3px] mb-0 text-[13px] text-muted-foreground">Valid {pack.validityMonths} months · reusable</p>
+              <p className="mt-[3px] mb-0 text-[13px] text-secondary-text">Valid {pack.validityMonths} months · reusable</p>
             </div>
             <span className="tabular font-mono text-[26px] font-medium tracking-[-0.01em]">{formatInr(pack.priceInr)}</span>
           </div>
@@ -245,7 +291,7 @@ export function PackageScreen({
         </div>
         <div className="mt-2 flex items-center justify-between">
           <TextAction onClick={onOtherPackages}>See other packages</TextAction>
-          <span className="text-[13px] text-muted-foreground">Pay after review</span>
+          <span className="text-[13px] text-secondary-text">Pay after review</span>
         </div>
       </Body>
       <Footer>
