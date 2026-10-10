@@ -147,9 +147,17 @@ export function ReturningScreen({
         </BgvCard>
 
         <div className="flex flex-1 flex-col items-center justify-center gap-3 py-8">
-          <span className="grid size-[84px] place-items-center border border-primary bg-background text-primary outline-[6px] outline-accent outline-solid">
-            <Icon icon={Fingerprint} size={40} strokeWidth={1.4} />
-          </span>
+          {/* Same action as Unlock: it looks tappable, so it is. */}
+          <button
+            type="button"
+            onClick={() => !busy && unlock()}
+            aria-label="Unlock with your phone’s screen lock"
+            aria-busy={busy || undefined}
+            className="grid size-[84px] cursor-pointer place-items-center border border-primary bg-background text-primary outline-[6px] outline-accent outline-solid hover:bg-accent focus-visible:outline-primary disabled:opacity-60"
+            disabled={busy}
+          >
+            <Icon icon={Fingerprint} size={40} strokeWidth={1.4} className={busy ? "animate-pulse" : undefined} />
+          </button>
           <span className="label-mono text-secondary-text">Use your phone’s screen lock</span>
         </div>
         {failed && <ErrorBanner>Unlock did not work. Try again, or use OTP instead.</ErrorBanner>}
