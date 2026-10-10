@@ -177,7 +177,6 @@ type NextAction = { title: string; detail: string; label: string; run: () => voi
 export interface CaseActions {
   onChooseChecks: () => void;
   onConsent: () => void;
-  onAadhaar: () => void | Promise<void>;
   onDigiLocker: () => void | Promise<void>;
   onDetails: () => void;
   onName: () => void;
@@ -185,7 +184,7 @@ export interface CaseActions {
 }
 
 function actionFor(check: SelectableCheck, actions: CaseActions) {
-  if (check === "AADHAAR") return actions.onAadhaar;
+  if (check === "AADHAAR") return actions.onDigiLocker;
   if (check === "ECOURTS_SEARCH") return actions.onDetails;
   return () => actions.onCheck(check);
 }
@@ -204,10 +203,9 @@ export function useNextAction(workerCase: WorkerCase | null, actions: CaseAction
     if (aadhaar) {
       return {
         title: "Verify your Aadhaar",
-        detail: "Use the Aadhaar app, or DigiLocker if the app does not work. Your other checks are matched to it.",
-        label: "Open Aadhaar app",
-        run: actions.onAadhaar,
-        secondary: { label: "Use DigiLocker", run: actions.onDigiLocker }
+        detail: "Sign in to DigiLocker and share your Aadhaar. Your other checks are matched to it.",
+        label: "Continue with DigiLocker",
+        run: actions.onDigiLocker
       };
     }
     // Documents are matched to the PAN name too; ask for it before the document checks.
@@ -277,7 +275,7 @@ export function CaseHomeScreen({
   workerCase: WorkerCase;
   language: string;
   notice?: string | null;
-  /** Guidance, not an error (e.g. finish in the Aadhaar app). */
+  /** Guidance, not an error (e.g. finish in DigiLocker). */
   info?: string | null;
   onLanguage: () => void;
   /** Opens the card so far. Shown once the checks are under way. */
