@@ -160,13 +160,14 @@ export function CaseConsentScreen({
 
 /* Worker home: the real case ------------------------------------------------ */
 
-type NextAction = { title: string; detail: string; label: string; run: () => void };
+type NextAction = { title: string; detail: string; label: string; run: () => void; alternative?: { label: string; run: () => void } };
 
 export function CaseHomeScreen({
   worker,
   workerCase,
   language,
   notice,
+  info,
   onLanguage,
   onChooseChecks,
   onConsent,
@@ -178,6 +179,8 @@ export function CaseHomeScreen({
   workerCase: WorkerCase;
   language: string;
   notice?: string | null;
+  /** Guidance, not an error (e.g. finish in the Aadhaar app). */
+  info?: string | null;
   onLanguage: () => void;
   onChooseChecks: () => void;
   onConsent: () => void;
@@ -202,9 +205,16 @@ export function CaseHomeScreen({
     }
     if (workerCase.status === "DRAFT") return { title: "Approve your checks", detail: "Say yes to each check before it runs.", label: "Start", run: onConsent };
     const aadhaar = rows.find((row) => row.check === "AADHAAR" && (row.needsInput || row.canResubmit));
-    if (aadhaar) return { title: "Verify your Aadhaar", detail: "Aadhaar OTP on the official page. Your name and photo come from here.", label: "Open Aadhaar", run: onAadhaar };
+    // Once Aadhaar is skipped (name and DOB typed), lead with the other checks; Aadhaar stays in its row.
+    const skippedAadhaar = Boolean(aadhaar && workerCase.details.dateOfBirth && workerCase.details.source !== "AADHAAR");
+    const nextOther = rows.find((row) => row.check !== "AADHAAR" && (row.needsInput || row.canResubmit));
+    if (aadhaar && !(skippedAadhaar && nextOther)) {
+      // Aadhaar can be unavailable; the other checks can still run against the typed name and date of birth.
+      const skip = !workerCase.details.dateOfBirth ? { label: "Skip Aadhaar for now, add date of birth", run: onDetails } : undefined;
+      return { title: "Verify your Aadhaar", detail: "Aadhaar OTP on the official page. Your name and photo come from here.", label: "Open Aadhaar", run: onAadhaar, alternative: skip };
+    }
     if (needsDetails) return { title: "Add your name and date of birth", detail: "As printed on your ID. Checks are matched to it.", label: "Add details", run: onDetails };
-    const open = rows.find((row) => row.needsInput || row.canResubmit);
+    const open = nextOther ?? rows.find((row) => row.needsInput || row.canResubmit);
     if (open) {
       return {
         title: open.check === "FACE" ? (open.canResubmit ? "Take your selfie again" : "Take a selfie") : `${open.canResubmit ? "Fix" : "Add"} your ${CHECK_INFO[open.check].title}`,
@@ -276,21 +286,13 @@ export function CaseHomeScreen({
         </div>
 
         {notice && <div className="px-5"><ErrorBanner>{notice}</ErrorBanner></div>}
+        {info && (
+          <div className="px-5">
+            <p role="status" className="mt-4 mb-0 border border-border bg-background px-3.5 py-3 text-[13px] leading-[1.5] text-secondary-text">{info}</p>
+          </div>
+        )}
 
-        {next ? (
-          <section className="px-5 pt-5 pb-6">
-            <Kicker className="mb-2.5 tracking-[0.12em]">Your next step</Kicker>
-            <div className="border border-foreground bg-background">
-              <div className="px-4 pt-4 pb-3.5">
-                <h2 className="mt-0 mb-1 text-[19px] font-medium tracking-[-0.015em]">{next.title}</h2>
-                <p className="m-0 text-[13.5px] leading-[1.55] text-secondary-text">{next.detail}</p>
-              </div>
-              <Button onClick={next.run} className="h-[50px] w-full justify-between px-4">
-                {next.label} <Icon icon={ArrowRight} size={13} strokeWidth={2.4} />
-              </Button>
-            </div>
-          </section>
-        ) : (
+        {!next && (
           <section className="px-5 pt-5 pb-6">
             <Kicker className="mb-2.5 tracking-[0.12em]">Status</Kicker>
             <p className="m-0 text-[14px] leading-[1.55] text-secondary-text">
@@ -298,11 +300,25 @@ export function CaseHomeScreen({
             </p>
           </section>
         )}
+        <div className="h-4 flex-none" />
       </main>
-      <footer className="flex flex-none items-center gap-2 border-t border-border bg-background px-5 pt-3 pb-[max(16px,env(safe-area-inset-bottom))] text-[13px] text-secondary-text">
-        <Icon icon={Lock} size={12} strokeWidth={2} />
-        Your details are used only for these checks.
-      </footer>
+      {next ? (
+        // The next step is pinned so its action is always in reach; the checks above scroll.
+        <footer className="flex-none border-t border-border bg-background px-5 pt-3 pb-[max(14px,env(safe-area-inset-bottom))]">
+          <Kicker className="mb-1.5 tracking-[0.12em]">Your next step</Kicker>
+          <h2 className="mt-0 mb-0.5 text-[17px] font-medium tracking-[-0.015em]">{next.title}</h2>
+          <p className="mt-0 mb-3 line-clamp-2 text-[13px] leading-[1.5] text-secondary-text">{next.detail}</p>
+          <Button onClick={next.run} className="h-[52px] w-full justify-between px-4">
+            {next.label} <Icon icon={ArrowRight} size={13} strokeWidth={2.4} />
+          </Button>
+          {next.alternative && <TextAction onClick={next.alternative.run} className="mt-0.5">{next.alternative.label}</TextAction>}
+        </footer>
+      ) : (
+        <footer className="flex flex-none items-center gap-2 border-t border-border bg-background px-5 pt-3 pb-[max(16px,env(safe-area-inset-bottom))] text-[13px] text-secondary-text">
+          <Icon icon={Lock} size={12} strokeWidth={2} />
+          Your details are used only for these checks.
+        </footer>
+      )}
     </Screen>
   );
 }
@@ -372,6 +388,7 @@ function Field({
 
 function FormScreen({
   step,
+  stage = 2,
   title,
   lead,
   language,
@@ -385,10 +402,11 @@ function FormScreen({
   children
 }: {
   step: string;
+  stage?: number;
   title: string;
   lead: string;
   language: string;
-  onBack: () => void;
+  onBack?: () => void;
   onLanguage: () => void;
   blockedBy?: string;
   busy: boolean;
@@ -400,7 +418,7 @@ function FormScreen({
   return (
     <Screen>
       <TopBar onBack={onBack} step={step} right={<LanguageChip code={language} onClick={onLanguage} />} />
-      <StageProgress stage={2} />
+      <StageProgress stage={stage} />
       <Body className="pt-6">
         <Title>{title}</Title>
         <Lead className="mt-2 mb-[22px] text-[14.5px]">{lead}</Lead>
@@ -438,6 +456,42 @@ function useSubmit(action: () => Promise<void>) {
     }
   }
   return { busy, error, run };
+}
+
+/* Name, right after OTP -------------------------------------------------------- */
+
+export function NameScreen({
+  initial,
+  language,
+  onLanguage,
+  onSave
+}: {
+  initial: string;
+  language: string;
+  onLanguage: () => void;
+  onSave: (fullName: string) => Promise<void>;
+}) {
+  const [fullName, setFullName] = useState(initial);
+  const valid = /^[\p{L} .'-]{2,80}$/u.test(fullName.trim());
+  const { busy, error, run } = useSubmit(() => onSave(fullName.trim().replace(/\s+/g, " ")));
+
+  return (
+    <FormScreen
+      step="Sign in · 2 of 2"
+      stage={0}
+      title="What is your name?"
+      lead="Write it exactly as on your Aadhaar card. Your checks are matched to this name."
+      language={language}
+      onLanguage={onLanguage}
+      blockedBy={valid ? undefined : "Add your name"}
+      busy={busy}
+      error={error}
+      submitLabel="Continue"
+      onSubmit={run}
+    >
+      <Field id="aadhaar-name" label="Full name as on Aadhaar" value={fullName} onChange={(value) => setFullName(value.slice(0, 80))} placeholder="Sandeep Kumar Meena" valid={valid} autoComplete="name" mono={false} />
+    </FormScreen>
+  );
 }
 
 /* Details: name, DOB, father's name, address -------------------------------- */

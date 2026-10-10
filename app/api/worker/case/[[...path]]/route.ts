@@ -11,6 +11,7 @@ const text = (max: number) => z.string().trim().max(max);
 const CHECK_KINDS = ["pan", "driving_license", "rc_v2", "voter_id", "passport", "employment_history", "ecourts_search", "face"] as const;
 
 const JSON_ROUTES: Record<string, { method: "PUT" | "POST"; body?: z.ZodTypeAny }> = {
+  name: { method: "PUT", body: z.object({ fullName: text(80) }).strict() },
   checks: { method: "PUT", body: z.object({ checks: z.array(text(40)).min(1).max(12) }).strict() },
   details: { method: "PUT", body: z.object({ fullName: text(80), dateOfBirth: text(10), fatherName: text(80), address: text(300) }).partial().strict() },
   consent: { method: "POST", body: z.object({ textVersion: text(40), items: z.array(text(30)).max(12) }).strict() },

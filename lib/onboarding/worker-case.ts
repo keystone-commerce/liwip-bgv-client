@@ -86,6 +86,17 @@ export function chosenChecks(workerCase: WorkerCase) {
   });
 }
 
+/**
+ * Opens the official Aadhaar (Pehchaan) app with the signed request, the same way
+ * Surepass's hosted launcher does. Null where the app cannot run (desktop).
+ */
+export function aadhaarAppUrl(intentData: string): string | null {
+  const agent = navigator.userAgent;
+  if (/Android/i.test(agent)) return `intent:#Intent;action=in.gov.uidai.pehchaan.WEB_INTENT_REQUEST;S.request=${intentData};end`;
+  const iOS = /iPhone|iPad|iPod/i.test(agent) || (/Macintosh/i.test(agent) && navigator.maxTouchPoints > 1);
+  return iOS ? `pehchaan://in.gov.uidai.pehchaan?req=${encodeURIComponent(intentData)}` : null;
+}
+
 export class CaseError extends Error {
   constructor(public readonly status: number, message: string) {
     super(message);
@@ -107,10 +118,11 @@ const json = (method: "PUT" | "POST", body?: unknown): RequestInit => ({
 
 export const workerCaseApi = {
   get: () => request<WorkerCase>(""),
+  saveName: (fullName: string) => request<WorkerCase>("/name", json("PUT", { fullName })),
   selectChecks: (checks: SelectableCheck[]) => request<WorkerCase>("/checks", json("PUT", { checks })),
   consent: (items: string[]) => request<WorkerCase>("/consent", json("POST", { textVersion: CASE_CONSENT_VERSION, items })),
   saveDetails: (details: { fullName?: string; dateOfBirth?: string; fatherName?: string; address?: string }) => request<WorkerCase>("/details", json("PUT", details)),
-  startAadhaar: () => request<{ url: string }>("/identity/aadhaar/start", json("POST")),
+  startAadhaar: () => request<{ url: string; intentData: string | null }>("/identity/aadhaar/start", json("POST")),
   completeAadhaar: () => request<WorkerCase>("/identity/aadhaar/complete", json("POST")),
   submitCheck: (check: Exclude<SelectableCheck, "AADHAAR" | "FACE">, input: Record<string, string>) =>
     request<WorkerCase>(`/checks/${check.toLowerCase()}`, json("POST", input)),

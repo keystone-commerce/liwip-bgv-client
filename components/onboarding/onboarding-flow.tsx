@@ -4,14 +4,14 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { AnimatePresence, motion, useReducedMotion } from "motion/react";
 import { type LanguageCode, LANGUAGES } from "@/lib/onboarding/data";
 import { apiOnboardingService, canUseQuickSignIn, type OnboardingService, type ReturningWorker, type WorkerProfile } from "@/lib/onboarding/service";
-import { CaseError, workerCaseApi, type SelectableCheck, type WorkerCase } from "@/lib/onboarding/worker-case";
-import { CaseConsentScreen, CaseHomeScreen, CheckFormScreen, ChooseChecksScreen, DetailsScreen, SelfieScreen, type FormCheck } from "./case-screens";
+import { CaseError, aadhaarAppUrl, workerCaseApi, type SelectableCheck, type WorkerCase } from "@/lib/onboarding/worker-case";
+import { CaseConsentScreen, CaseHomeScreen, CheckFormScreen, ChooseChecksScreen, DetailsScreen, NameScreen, SelfieScreen, type FormCheck } from "./case-screens";
 import { EntryScreen, ReturningScreen } from "./entry-screens";
 import { LanguageScreen, MobileScreen, OtpScreen, QuickSignInScreen, VerifiedScreen } from "./sign-in-screens";
 
-export type ScreenId = "entry" | "returning" | "language" | "mobile" | "otp" | "verified" | "quick-sign-in" | "home" | "checks" | "case-consent" | "details" | "check-form" | "selfie";
+export type ScreenId = "entry" | "returning" | "language" | "mobile" | "otp" | "name" | "verified" | "quick-sign-in" | "home" | "checks" | "case-consent" | "details" | "check-form" | "selfie";
 
-const SCREENS: ScreenId[] = ["entry", "returning", "language", "mobile", "otp", "verified", "quick-sign-in", "home", "checks", "case-consent", "details", "check-form", "selfie"];
+const SCREENS: ScreenId[] = ["entry", "returning", "language", "mobile", "otp", "name", "verified", "quick-sign-in", "home", "checks", "case-consent", "details", "check-form", "selfie"];
 
 interface Draft {
   language: LanguageCode;
@@ -50,7 +50,7 @@ function isReachable(screen: ScreenId, draft: Draft, returning: ReturningWorker 
   if (screen === "otp") return draft.phone.length === 10;
   if (screen === "returning") return Boolean(returning);
   if (screen === "check-form") return Boolean(draft.worker && draft.formCheck);
-  if (["verified", "quick-sign-in", "home", "checks", "case-consent", "details", "selfie"].includes(screen)) return Boolean(draft.worker);
+  if (["name", "verified", "quick-sign-in", "home", "checks", "case-consent", "details", "selfie"].includes(screen)) return Boolean(draft.worker);
   return true;
 }
 
@@ -94,6 +94,7 @@ export function OnboardingFlow({
   const [variant, setVariant] = useState(returningVariant);
   const [workerCase, setWorkerCase] = useState<WorkerCase | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
+  const [info, setInfo] = useState<string | null>(null);
   // Set once when the page loads on the return from the Aadhaar page.
   const aadhaarReturn = useRef(false);
   const reduceMotion = useReducedMotion();
@@ -211,6 +212,23 @@ export function OnboardingFlow({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [ready, screen, draft.worker]);
 
+  // While Aadhaar is pending in the app, check for the result every 4 seconds and when the worker returns.
+  const aadhaarPending = workerCase?.identity?.status === "PENDING";
+  useEffect(() => {
+    if (screen !== "home" || !aadhaarPending) return;
+    const check = () => void workerCaseApi.completeAadhaar().then((next) => {
+      setWorkerCase(next);
+      if (next.identity?.status !== "PENDING") setInfo(null);
+    }).catch(() => undefined);
+    const timer = window.setInterval(check, 4000);
+    const onVisible = () => document.visibilityState === "visible" && check();
+    document.addEventListener("visibilitychange", onVisible);
+    return () => {
+      window.clearInterval(timer);
+      document.removeEventListener("visibilitychange", onVisible);
+    };
+  }, [screen, aadhaarPending]);
+
   // While a check runs, refresh every 4 seconds so states update on their own.
   const running = workerCase?.checks.some((check) => check.status === "QUEUED" || check.status === "PROCESSING");
   useEffect(() => {
@@ -221,8 +239,18 @@ export function OnboardingFlow({
 
   const startAadhaar = useCallback(async () => {
     try {
-      const { url } = await workerCaseApi.startAadhaar();
-      window.location.assign(url);
+      const { url, intentData } = await workerCaseApi.startAadhaar();
+      const appUrl = intentData ? aadhaarAppUrl(intentData) : null;
+      if (appUrl) {
+        // The Aadhaar app opens over this page; home checks the result when the worker comes back.
+        setNotice(null);
+        setInfo("Finish in the Aadhaar app, then come back here. Your result appears on its own.");
+        window.location.assign(appUrl);
+      } else if (!intentData) {
+        window.location.assign(url);
+      } else {
+        setNotice("Aadhaar needs the Aadhaar app. Open this page on the phone where the app is installed.");
+      }
     } catch (failure) {
       setNotice(failure instanceof Error ? failure.message : "Aadhaar could not be opened. Try again.");
     }
@@ -306,12 +334,28 @@ export function OnboardingFlow({
               const result = await service.verifyOtp(draft.phone, code);
               if (!result.ok) return result.reason;
               update({ worker: result.worker });
-              // A returning worker who chose OTP goes straight home.
-              go(returning ? "home" : "verified", { replace: true });
+              // First sign-in asks for the Aadhaar name; a returning worker who chose OTP goes straight home.
+              go(!result.worker.fullName ? "name" : returning ? "home" : "verified", { replace: true });
               return "ok";
             }}
           />
         );
+
+      case "name":
+        return draft.worker ? (
+          <NameScreen
+            initial={draft.worker.fullName}
+            language={chip}
+            onLanguage={openLanguage}
+            onSave={async (fullName) => {
+              const saved = await workerCaseApi.saveName(fullName);
+              setWorkerCase(saved);
+              const name = saved.details.fullName ?? fullName;
+              update({ worker: { ...draft.worker!, fullName: name, firstName: name.split(" ")[0] } });
+              go(returning ? "home" : "verified", { replace: true });
+            }}
+          />
+        ) : null;
 
       case "verified":
         return draft.worker ? (
@@ -348,6 +392,7 @@ export function OnboardingFlow({
             workerCase={workerCase}
             language={chip}
             notice={notice}
+            info={info}
             onLanguage={openLanguage}
             onChooseChecks={() => go("checks")}
             onConsent={() => go("case-consent")}
