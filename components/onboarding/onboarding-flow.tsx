@@ -361,7 +361,7 @@ export function OnboardingFlow({
             onSave={async (fullName) => {
               const saved = await workerCaseApi.saveName(fullName);
               setWorkerCase(saved);
-              const name = saved.details.fullName ?? fullName;
+              const name = saved.details.declaredName ?? saved.details.fullName ?? fullName;
               update({ worker: { ...draft.worker!, fullName: name, firstName: name.split(" ")[0] } });
               go(returning ? "home" : "verified", { replace: true });
             }}

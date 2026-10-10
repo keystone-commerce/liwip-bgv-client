@@ -24,7 +24,7 @@ export interface WorkerCase {
   catalog: Array<{ check: SelectableCheck; available: boolean; requires: SelectableCheck | null; consent: string; selected: boolean }>;
   selectedChecks: SelectableCheck[];
   consent: { textVersion: string; grantedAt: string; items: string[] } | null;
-  details: { source: "AADHAAR" | "WORKER" | null; fullName: string | null; dateOfBirth: string | null; fatherName: string | null; address: string | null };
+  details: { source: "AADHAAR" | "WORKER" | null; fullName: string | null; declaredName: string | null; dateOfBirth: string | null; fatherName: string | null; address: string | null };
   identity: { source: string; status: "PENDING" | "VERIFIED" | "FAILED" } | null;
   checks: Array<{ id: string; type: string; status: ApiCheckStatus; needsInput: boolean; canResubmit: boolean; reason: string | null; updatedAt: string }>;
   card: { status: string; issuedAt: string; expiresAt: string } | null;

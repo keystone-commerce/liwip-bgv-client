@@ -203,7 +203,7 @@ export function CaseHomeScreen({
     }
   }
   const verified = rows.filter((row) => row.state === "verified").length;
-  const name = workerCase.details.fullName || worker.fullName;
+  const name = workerCase.details.declaredName || workerCase.details.fullName || worker.fullName;
   const aadhaarChosen = workerCase.selectedChecks.includes("AADHAAR");
   // A chosen Aadhaar comes first: the other checks are matched to the name and photo it returns.
   const aadhaarPending = aadhaarChosen && workerCase.identity?.status !== "VERIFIED";
@@ -507,8 +507,8 @@ export function NameScreen({
     <FormScreen
       step="Sign in · 2 of 2"
       stage={0}
-      title="What is your name?"
-      lead="Write it exactly as on your Aadhaar card. Your checks are matched to this name."
+      title="What is your full name?"
+      lead="As printed on your PAN card, with initials written in full. Your documents are matched to this name."
       language={language}
       onLanguage={onLanguage}
       blockedBy={valid ? undefined : "Add your name"}
@@ -517,7 +517,7 @@ export function NameScreen({
       submitLabel="Continue"
       onSubmit={run}
     >
-      <Field id="aadhaar-name" label="Full name as on Aadhaar" value={fullName} onChange={(value) => setFullName(value.slice(0, 80))} placeholder="Sandeep Kumar Meena" valid={valid} autoComplete="name" mono={false} />
+      <Field id="pan-name" label="Full name as on PAN" value={fullName} onChange={(value) => setFullName(value.slice(0, 80))} placeholder="Sandeep Kumar Meena" valid={valid} autoComplete="name" mono={false} />
     </FormScreen>
   );
 }

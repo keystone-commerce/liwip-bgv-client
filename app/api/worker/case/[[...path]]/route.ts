@@ -48,7 +48,7 @@ export async function GET(_request: Request, context: Context) {
 async function write(request: Request, context: Context, method: "PUT" | "POST") {
   const path = ((await context.params).path ?? []).join("/");
 
-  const check = /^checks\/([a-z_]+)$/.exec(path);
+  const check = /^checks\/([a-z0-9_]+)$/.exec(path);
   if (check && method === "POST") {
     const kind = check[1];
     if (!(CHECK_KINDS as readonly string[]).includes(kind)) return NextResponse.json({ message: "Unknown check" }, { status: 404 });

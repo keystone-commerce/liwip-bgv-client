@@ -136,7 +136,7 @@ export const apiOnboardingService: OnboardingService = {
     if (result.status === 401 || result.status === 400) return { ok: false, reason: "wrong-code" };
     if (!result.ok) throw new Error(result.data?.message || "Could not verify the code");
     const workerCase = await workerCaseApi.get();
-    const fullName = workerCase.details.fullName ?? "";
+    const fullName = workerCase.details.declaredName ?? workerCase.details.fullName ?? "";
     return {
       ok: true,
       worker: { applicationId: workerCase.applicationId, cardNumber: workerCase.cardNumber ?? "", firstName: fullName.split(" ")[0] ?? "", fullName, phone }
