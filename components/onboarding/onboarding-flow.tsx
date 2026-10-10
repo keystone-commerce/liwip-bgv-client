@@ -4,14 +4,25 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { AnimatePresence, motion, useReducedMotion } from "motion/react";
 import { type LanguageCode, LANGUAGES } from "@/lib/onboarding/data";
 import { apiOnboardingService, canUseQuickSignIn, type OnboardingService, type ReturningWorker, type WorkerProfile } from "@/lib/onboarding/service";
+import { CardError, fetchCard, reissueCard, type CardView } from "@/lib/onboarding/card";
 import { CaseError, aadhaarAppUrl, workerCaseApi, type SelectableCheck, type WorkerCase } from "@/lib/onboarding/worker-case";
-import { CaseConsentScreen, CaseHomeScreen, CheckFormScreen, ChooseChecksScreen, DetailsScreen, NameScreen, SelfieScreen, type FormCheck } from "./case-screens";
+import { HELP_URL } from "@/lib/onboarding/data";
+import { CardReveal } from "./card-reveal";
+import { CardChecksScreen, CardHomeScreen, CardScreen, CardSoFarScreen, LargeQrScreen, ReissueScreen } from "./card-screens";
+import { CaseConsentScreen, CaseHomeScreen, CheckFormScreen, ChooseChecksScreen, DetailsScreen, NameScreen, NextStepFooter, SelfieScreen, useNextAction, type CaseActions, type FormCheck } from "./case-screens";
+import { HeaderChip, LanguageChip } from "./shell";
 import { EntryScreen, ReturningScreen } from "./entry-screens";
 import { LanguageScreen, MobileScreen, OtpScreen, QuickSignInScreen, VerifiedScreen } from "./sign-in-screens";
 
-export type ScreenId = "entry" | "returning" | "language" | "mobile" | "otp" | "name" | "verified" | "quick-sign-in" | "home" | "checks" | "case-consent" | "details" | "check-form" | "selfie";
+export type ScreenId =
+  | "entry" | "returning" | "language" | "mobile" | "otp" | "name" | "verified" | "quick-sign-in" | "home" | "checks" | "case-consent" | "details" | "check-form" | "selfie"
+  | "card-so-far" | "card" | "card-qr" | "card-checks" | "card-reissue" | "add-checks" | "add-consent";
 
-const SCREENS: ScreenId[] = ["entry", "returning", "language", "mobile", "otp", "name", "verified", "quick-sign-in", "home", "checks", "case-consent", "details", "check-form", "selfie"];
+const SCREENS: ScreenId[] = [
+  "entry", "returning", "language", "mobile", "otp", "name", "verified", "quick-sign-in", "home", "checks", "case-consent", "details", "check-form", "selfie",
+  "card-so-far", "card", "card-qr", "card-checks", "card-reissue", "add-checks", "add-consent"
+];
+const CARD_SCREENS: ScreenId[] = ["card-so-far", "card", "card-qr", "card-checks", "card-reissue"];
 
 interface Draft {
   language: LanguageCode;
@@ -21,6 +32,8 @@ interface Draft {
   worker?: WorkerProfile;
   /** The document form open on the check-form screen. */
   formCheck?: FormCheck;
+  /** Checks being added to the card, between choosing and approving them. */
+  adding?: SelectableCheck[];
   quickSignInOffered: boolean;
 }
 
@@ -50,7 +63,8 @@ function isReachable(screen: ScreenId, draft: Draft, returning: ReturningWorker 
   if (screen === "otp") return draft.phone.length === 10;
   if (screen === "returning") return Boolean(returning);
   if (screen === "check-form") return Boolean(draft.worker && draft.formCheck);
-  if (["name", "verified", "quick-sign-in", "home", "checks", "case-consent", "details", "selfie"].includes(screen)) return Boolean(draft.worker);
+  if (screen === "add-consent") return Boolean(draft.worker && draft.adding?.length);
+  if (["name", "verified", "quick-sign-in", "home", "checks", "case-consent", "details", "selfie", "add-checks", ...CARD_SCREENS].includes(screen)) return Boolean(draft.worker);
   return true;
 }
 
@@ -72,6 +86,23 @@ function writeDraft(draft: Draft, screen: ScreenId) {
 }
 
 const EASE = [0.22, 1, 0.36, 1] as const;
+
+// The reveal plays once per card on this device.
+const revealKey = (cardNumber: string) => `liwip-card-revealed:${cardNumber}`;
+function wasRevealed(cardNumber: string) {
+  try {
+    return window.localStorage.getItem(revealKey(cardNumber)) === "1";
+  } catch {
+    return true; // storage blocked: skip the moment rather than replay it on every visit
+  }
+}
+function markRevealed(cardNumber: string) {
+  try {
+    window.localStorage.setItem(revealKey(cardNumber), "1");
+  } catch {
+    // Private windows can block storage.
+  }
+}
 
 export function OnboardingFlow({
   service = apiOnboardingService,
@@ -95,6 +126,8 @@ export function OnboardingFlow({
   const [workerCase, setWorkerCase] = useState<WorkerCase | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
   const [info, setInfo] = useState<string | null>(null);
+  const [card, setCard] = useState<CardView | null>(null);
+  const [revealed, setRevealed] = useState<string | null>(null);
   // Set once when the page loads on the return from the Aadhaar page.
   const aadhaarReturn = useRef(false);
   const reduceMotion = useReducedMotion();
@@ -185,6 +218,13 @@ export function OnboardingFlow({
   const languageCode = LANGUAGES.find((item) => item.code === draft.language)?.code ?? "en";
   const chip = languageCode === "en" ? "EN" : languageCode.toUpperCase();
 
+  const signedOut = useCallback(() => {
+    setDraft((current) => ({ ...current, worker: undefined }));
+    setWorkerCase(null);
+    setCard(null);
+    setScreen("mobile");
+  }, []);
+
   /** Loads the case. A missing or expired worker session sends the worker to sign in again. */
   const loadCase = useCallback(async () => {
     try {
@@ -196,17 +236,31 @@ export function OnboardingFlow({
       }
       setNotice(null);
     } catch (failure) {
-      if (failure instanceof CaseError && failure.status === 401) {
-        setDraft((current) => ({ ...current, worker: undefined }));
-        setScreen("mobile");
-        return;
-      }
+      if (failure instanceof CaseError && failure.status === 401) return signedOut();
       setNotice(failure instanceof Error ? failure.message : "Your case could not be loaded. Try again.");
     }
-  }, []);
+  }, [signedOut]);
+
+  const loadCard = useCallback(async () => {
+    try {
+      setCard(await fetchCard());
+    } catch (failure) {
+      if (failure instanceof CardError && failure.signedOut) return signedOut();
+      setNotice(failure instanceof Error ? failure.message : "Your card could not be loaded. Try again.");
+    }
+  }, [signedOut]);
+
+  // The card follows the case: reload it whenever the case changes (a check passes, the card is released).
+  const cardIssued = Boolean(workerCase?.card);
+  useEffect(() => {
+    if (!ready || !draft.worker || !workerCase) return;
+    if (!cardIssued && !CARD_SCREENS.includes(screen)) return;
+    const timer = window.setTimeout(() => void loadCard(), 0);
+    return () => window.clearTimeout(timer);
+  }, [ready, draft.worker, workerCase, cardIssued, screen, loadCard]);
 
   useEffect(() => {
-    if (!ready || !draft.worker || (screen !== "home" && workerCase)) return;
+    if (!ready || !draft.worker || (screen !== "home" && screen !== "card-so-far" && workerCase)) return;
     const timer = window.setTimeout(() => void loadCase(), 0);
     return () => window.clearTimeout(timer);
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -239,13 +293,15 @@ export function OnboardingFlow({
     };
   }, [screen, aadhaarPending]);
 
-  // While a check runs, refresh every 4 seconds so states update on their own.
+  // While a check runs, refresh every 4 seconds so states update on their own; while one is in
+  // review, every 15 seconds, so a decision (and a released card) shows without a reload.
   const running = workerCase?.checks.some((check) => check.status === "QUEUED" || check.status === "PROCESSING");
+  const inReview = workerCase?.checks.some((check) => check.status === "MANUAL_REVIEW");
   useEffect(() => {
-    if (screen !== "home" || !running) return;
-    const timer = window.setInterval(() => void workerCaseApi.get().then(setWorkerCase).catch(() => undefined), 4000);
+    if ((screen !== "home" && screen !== "card-so-far") || (!running && !inReview)) return;
+    const timer = window.setInterval(() => void workerCaseApi.get().then(setWorkerCase).catch(() => undefined), running ? 4000 : 15000);
     return () => window.clearInterval(timer);
-  }, [screen, running]);
+  }, [screen, running, inReview]);
 
   const startAadhaar = useCallback(async () => {
     setNotice(null);
@@ -267,7 +323,31 @@ export function OnboardingFlow({
     }
   }, []);
 
+  const caseActions: CaseActions = {
+    onChooseChecks: () => go("checks"),
+    onConsent: () => go("case-consent"),
+    onAadhaar: startAadhaar,
+    onDigiLocker: startDigiLocker,
+    onDetails: () => go("details"),
+    onName: () => go("name"),
+    onCheck: (check) => {
+      if (check === "FACE") return go("selfie");
+      update({ formCheck: check as FormCheck });
+      go("check-form");
+    }
+  };
+  const next = useNextAction(workerCase, caseActions);
+  const nextFooter = next ? <NextStepFooter next={next} notice={notice} /> : undefined;
+
   function render() {
+    const chips = (
+      <>
+        <LanguageChip code={chip} onClick={openLanguage} />
+        {HELP_URL && <HeaderChip href={HELP_URL}>Help</HeaderChip>}
+      </>
+    );
+    const loading = (text: string) => <div className="grid min-h-dvh place-items-center bg-background px-5 text-center text-[14px] text-secondary-text">{notice ?? text}</div>;
+
     switch (screen) {
       case "entry":
         return <EntryScreen tone={tone} language={chip} onLanguage={openLanguage} onStart={() => go(draft.languageChosen ? "mobile" : "language")} />;
@@ -284,6 +364,7 @@ export function OnboardingFlow({
               const result = await service.unlock();
               if (result.ok) {
                 setWorkerCase(null);
+                setCard(null);
                 update({ worker: returning, phone: returning.phone });
                 go("home", { replace: true });
               }
@@ -398,30 +479,97 @@ export function OnboardingFlow({
           />
         ) : null;
 
-      case "home":
-        return draft.worker && workerCase ? (
-          <CaseHomeScreen
-            worker={draft.worker}
-            workerCase={workerCase}
-            language={chip}
-            notice={notice}
+      case "card-so-far":
+        if (!card) return loading("Loading your card");
+        if (!card.issued) return <CardSoFarScreen card={card} topRight={chips} notice={next ? null : notice} onBack={back} onSeeChecks={() => go("card-checks")} footer={nextFooter} />;
+      // falls through: released while the worker looks at the card so far, so show home with the reveal.
+      case "home": {
+        if (!draft.worker || !workerCase) return loading("Loading your case");
+        if (!workerCase.card) {
+          return <CaseHomeScreen worker={draft.worker} workerCase={workerCase} language={chip} notice={notice} info={info} onLanguage={openLanguage} onCard={() => go("card-so-far")} {...caseActions} />;
+        }
+        // The card is released: it is home from now on, with the next step pinned when added checks need something.
+        if (!card?.issued) return loading("Loading your card");
+        const issued = card;
+        if (revealed !== issued.cardNumber && !wasRevealed(issued.cardNumber)) {
+          return (
+            <CardReveal
+              card={issued}
+              onDone={() => {
+                markRevealed(issued.cardNumber);
+                setRevealed(issued.cardNumber);
+              }}
+            />
+          );
+        }
+        return (
+          <CardHomeScreen
+            card={issued}
+            topRight={chips}
+            notice={next ? null : notice}
             info={info}
-            onLanguage={openLanguage}
-            onChooseChecks={() => go("checks")}
-            onConsent={() => go("case-consent")}
-            onAadhaar={startAadhaar}
-            onDigiLocker={startDigiLocker}
-            onDetails={() => go("details")}
-            onName={() => go("name")}
-            onCheck={(check) => {
-              if (check === "FACE") return go("selfie");
-              update({ formCheck: check as FormCheck });
-              go("check-form");
+            footer={nextFooter}
+            onShowQr={() => go("card")}
+            onSeeChecks={() => go("card-checks")}
+            onAddChecks={() => go("add-checks")}
+            onReissue={() => go("card-reissue")}
+            onSignedOut={signedOut}
+          />
+        );
+      }
+
+      case "card":
+        return card?.issued ? <CardScreen card={card} onBack={back} onBigQr={() => go("card-qr")} onSeeChecks={() => go("card-checks")} onSignedOut={signedOut} /> : loading("Loading your card");
+
+      case "card-qr":
+        return card?.issued ? <LargeQrScreen card={card} onDone={back} onSignedOut={signedOut} /> : loading("Loading your card");
+
+      case "card-checks":
+        return card ? <CardChecksScreen card={card} onBack={back} onAddChecks={() => go("add-checks")} /> : loading("Loading your card");
+
+      case "card-reissue":
+        return (
+          <ReissueScreen
+            card={card?.issued ? card : undefined}
+            onBack={back}
+            onConfirm={async () => {
+              await reissueCard();
+              await loadCard();
+              go("card", { replace: true });
             }}
           />
-        ) : (
-          <div className="grid min-h-dvh place-items-center bg-background px-5 text-center text-[14px] text-secondary-text">{notice ?? "Loading your case"}</div>
         );
+
+      case "add-checks":
+        return workerCase ? (
+          <ChooseChecksScreen
+            adding
+            workerCase={workerCase}
+            language={chip}
+            onBack={back}
+            onLanguage={openLanguage}
+            onContinue={async (checks: SelectableCheck[]) => {
+              update({ adding: checks });
+              go("add-consent");
+            }}
+          />
+        ) : loading("Loading your case");
+
+      case "add-consent":
+        return workerCase && draft.adding?.length ? (
+          <CaseConsentScreen
+            workerCase={workerCase}
+            adding={draft.adding}
+            language={chip}
+            onBack={back}
+            onLanguage={openLanguage}
+            onAgree={async (items) => {
+              setWorkerCase(await workerCaseApi.addChecks(draft.adding!, items));
+              update({ adding: undefined });
+              go("home", { replace: true });
+            }}
+          />
+        ) : null;
 
       case "checks":
         return workerCase ? (

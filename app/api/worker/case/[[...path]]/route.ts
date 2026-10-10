@@ -13,6 +13,7 @@ const CHECK_KINDS = ["pan", "driving_license", "rc_v2", "voter_id", "passport", 
 const JSON_ROUTES: Record<string, { method: "PUT" | "POST"; body?: z.ZodTypeAny }> = {
   name: { method: "PUT", body: z.object({ fullName: text(80) }).strict() },
   checks: { method: "PUT", body: z.object({ checks: z.array(text(40)).min(1).max(12) }).strict() },
+  "checks/add": { method: "POST", body: z.object({ checks: z.array(text(40)).min(1).max(12), textVersion: text(40), items: z.array(text(30)).max(12) }).strict() },
   details: { method: "PUT", body: z.object({ fullName: text(80), dateOfBirth: text(10), fatherName: text(80), address: text(300) }).partial().strict() },
   consent: { method: "POST", body: z.object({ textVersion: text(40), items: z.array(text(30)).max(12) }).strict() },
   "identity/aadhaar/start": { method: "POST" },
@@ -48,7 +49,7 @@ export async function GET(_request: Request, context: Context) {
 async function write(request: Request, context: Context, method: "PUT" | "POST") {
   const path = ((await context.params).path ?? []).join("/");
 
-  const check = /^checks\/([a-z0-9_]+)$/.exec(path);
+  const check = path === "checks/add" ? null : /^checks\/([a-z0-9_]+)$/.exec(path);
   if (check && method === "POST") {
     const kind = check[1];
     if (!(CHECK_KINDS as readonly string[]).includes(kind)) return NextResponse.json({ message: "Unknown check" }, { status: 404 });

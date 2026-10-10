@@ -26,17 +26,20 @@ export function ChooseChecksScreen({
   language,
   onBack,
   onLanguage,
-  onContinue
+  onContinue,
+  adding = false
 }: {
   workerCase: WorkerCase;
   language: string;
   onBack: () => void;
   onLanguage: () => void;
   onContinue: (checks: SelectableCheck[]) => Promise<void>;
+  /** Adding checks to a case already under way: only checks not chosen yet are offered. */
+  adding?: boolean;
 }) {
   // The catalogue arrives most important first; unavailable checks are not offered.
-  const offered = workerCase.catalog.filter((item) => item.available);
-  const [chosen, setChosen] = useState<SelectableCheck[]>(workerCase.selectedChecks);
+  const offered = workerCase.catalog.filter((item) => item.available && !(adding && workerCase.selectedChecks.includes(item.check)));
+  const [chosen, setChosen] = useState<SelectableCheck[]>(adding ? [] : workerCase.selectedChecks);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -45,7 +48,7 @@ export function ChooseChecksScreen({
       let next = on ? [...current, check] : current.filter((item) => item !== check);
       // A check that needs another brings it along, and losing the base drops it.
       const requires = offered.find((item) => item.check === check)?.requires;
-      if (on && requires && !next.includes(requires)) next = [...next, requires];
+      if (on && requires && !next.includes(requires) && offered.some((item) => item.check === requires)) next = [...next, requires];
       if (!on) next = next.filter((item) => offered.find((entry) => entry.check === item)?.requires !== check);
       return offered.map((item) => item.check).filter((item) => next.includes(item));
     });
@@ -65,11 +68,14 @@ export function ChooseChecksScreen({
 
   return (
     <Screen>
-      <TopBar onBack={onBack} step="Your checks · 1 of 2" right={<LanguageChip code={language} onClick={onLanguage} />} />
-      <StageProgress stage={1} />
+      <TopBar onBack={onBack} step={adding ? "Add checks · 1 of 2" : "Your checks · 1 of 2"} right={<LanguageChip code={language} onClick={onLanguage} />} />
+      {!adding && <StageProgress stage={1} />}
       <Body className="pt-6">
-        <Title>What can you verify?</Title>
-        <Lead className="mt-2 mb-[18px] text-[14.5px]">Pick the documents you have with you. You can skip the rest.</Lead>
+        <Title>{adding ? "Add checks to your card" : "What can you verify?"}</Title>
+        <Lead className="mt-2 mb-[18px] text-[14.5px]">
+          {adding ? "Each check that passes is added to your card. Your card stays valid while they run." : "Pick the documents you have with you. You can skip the rest."}
+        </Lead>
+        {adding && !offered.length && <p className="m-0 border-t border-border pt-4 text-[14px] text-secondary-text">You have chosen every check we offer.</p>}
         <fieldset className="m-0 border-0 border-t border-border p-0">
           <legend className="sr-only">Checks to run</legend>
           {offered.map((item) => (
@@ -100,15 +106,19 @@ export function CaseConsentScreen({
   language,
   onBack,
   onLanguage,
-  onAgree
+  onAgree,
+  adding
 }: {
   workerCase: WorkerCase;
   language: string;
   onBack: () => void;
   onLanguage: () => void;
   onAgree: (items: string[]) => Promise<void>;
+  /** Checks being added later: only purposes not approved before are asked. */
+  adding?: SelectableCheck[];
 }) {
-  const items = consentItemsFor(workerCase, workerCase.selectedChecks);
+  const given = workerCase.consent?.items ?? [];
+  const items = adding ? consentItemsFor(workerCase, adding).filter((item) => !given.includes(item)) : consentItemsFor(workerCase, workerCase.selectedChecks);
   // Nothing is pre-ticked and there is no "agree to all" (DESIGN.md §13).
   const [approved, setApproved] = useState<string[]>([]);
   const [busy, setBusy] = useState(false);
@@ -129,11 +139,13 @@ export function CaseConsentScreen({
 
   return (
     <Screen>
-      <TopBar onBack={onBack} step="Your checks · 2 of 2" right={<LanguageChip code={language} onClick={onLanguage} />} />
-      <StageProgress stage={1} />
+      <TopBar onBack={onBack} step={adding ? "Add checks · 2 of 2" : "Your checks · 2 of 2"} right={<LanguageChip code={language} onClick={onLanguage} />} />
+      {!adding && <StageProgress stage={1} />}
       <Body className="pt-6">
         <Title>Approve each check</Title>
-        <Lead className="mt-2 mb-[18px] text-[14.5px]">We record what you approve, why, and when.</Lead>
+        <Lead className="mt-2 mb-[18px] text-[14.5px]">
+          {adding && !items.length ? "You approved these uses before. Start the new checks when you are ready." : "We record what you approve, why, and when."}
+        </Lead>
         <fieldset className="m-0 border-0 border-t border-border p-0">
           <legend className="sr-only">Approvals</legend>
           {items.map((id) => (
@@ -151,7 +163,7 @@ export function CaseConsentScreen({
       </Body>
       <Footer>
         <PrimaryAction busy={busy} blockedBy={left > 0 ? `Agree · ${left} left to approve` : undefined} onClick={agree}>
-          Agree and start
+          {adding && !items.length ? "Start checks" : "Agree and start"}
         </PrimaryAction>
       </Footer>
     </Screen>
@@ -162,28 +174,7 @@ export function CaseConsentScreen({
 
 type NextAction = { title: string; detail: string; label: string; run: () => void | Promise<void>; secondary?: { label: string; run: () => void | Promise<void> } };
 
-export function CaseHomeScreen({
-  worker,
-  workerCase,
-  language,
-  notice,
-  info,
-  onLanguage,
-  onChooseChecks,
-  onConsent,
-  onAadhaar,
-  onDigiLocker,
-  onDetails,
-  onName,
-  onCheck
-}: {
-  worker: WorkerProfile;
-  workerCase: WorkerCase;
-  language: string;
-  notice?: string | null;
-  /** Guidance, not an error (e.g. finish in the Aadhaar app). */
-  info?: string | null;
-  onLanguage: () => void;
+export interface CaseActions {
   onChooseChecks: () => void;
   onConsent: () => void;
   onAadhaar: () => void | Promise<void>;
@@ -191,8 +182,55 @@ export function CaseHomeScreen({
   onDetails: () => void;
   onName: () => void;
   onCheck: (check: SelectableCheck) => void;
-}) {
-  const rows = chosenChecks(workerCase);
+}
+
+function actionFor(check: SelectableCheck, actions: CaseActions) {
+  if (check === "AADHAAR") return actions.onAadhaar;
+  if (check === "ECOURTS_SEARCH") return actions.onDetails;
+  return () => actions.onCheck(check);
+}
+
+/** The one thing the worker should do next, or null when nothing is needed from them. */
+export function useNextAction(workerCase: WorkerCase | null, actions: CaseActions): NextAction | null {
+  return useMemo<NextAction | null>(() => {
+    if (!workerCase) return null;
+    const rows = chosenChecks(workerCase);
+    const needsDetails = !workerCase.selectedChecks.includes("AADHAAR") && (!workerCase.details.fullName || !workerCase.details.dateOfBirth);
+    if (workerCase.status === "DRAFT" && !workerCase.selectedChecks.length) {
+      return { title: "Choose your checks", detail: "Pick the documents you have. About 1 minute.", label: "Start", run: actions.onChooseChecks };
+    }
+    if (workerCase.status === "DRAFT") return { title: "Approve your checks", detail: "Say yes to each check before it runs.", label: "Start", run: actions.onConsent };
+    const aadhaar = rows.find((row) => row.check === "AADHAAR" && (row.needsInput || row.canResubmit));
+    if (aadhaar) {
+      return {
+        title: "Verify your Aadhaar",
+        detail: "Use the Aadhaar app, or DigiLocker if the app does not work. Your other checks are matched to it.",
+        label: "Open Aadhaar app",
+        run: actions.onAadhaar,
+        secondary: { label: "Use DigiLocker", run: actions.onDigiLocker }
+      };
+    }
+    // Documents are matched to the PAN name too; ask for it before the document checks.
+    if (!workerCase.details.declaredName && rows.some((row) => row.check !== "AADHAAR" && (row.needsInput || row.canResubmit))) {
+      return { title: "Add your full name as on PAN", detail: "Initials written in full. Your documents are matched to it.", label: "Add name", run: actions.onName };
+    }
+    if (needsDetails) return { title: "Add your date of birth", detail: "As printed on your ID. Checks are matched to your name and date of birth.", label: "Add details", run: actions.onDetails };
+    const open = rows.find((row) => row.needsInput || row.canResubmit);
+    if (open) {
+      return {
+        title: open.check === "FACE" ? (open.canResubmit ? "Take your selfie again" : "Take a selfie") : `${open.canResubmit ? "Fix" : "Add"} your ${CHECK_INFO[open.check].title}`,
+        detail: open.reason ?? CHECK_INFO[open.check].detail,
+        label: open.canResubmit ? "Fix" : "Add",
+        run: actionFor(open.check, actions)
+      };
+    }
+    return null;
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [workerCase]);
+}
+
+/** The next step, pinned and inverted so the whole step stands out, not only its button. */
+export function NextStepFooter({ next, notice }: { next: NextAction; notice?: string | null }) {
   // One action at a time: a tap shows progress and further taps wait for it.
   const [pressed, setPressed] = useState<"primary" | "secondary" | null>(null);
   async function press(which: "primary" | "secondary", action: () => void | Promise<void>) {
@@ -204,51 +242,54 @@ export function CaseHomeScreen({
       setPressed(null);
     }
   }
+  return (
+    <footer className="flex-none bg-primary px-5 pt-3.5 pb-[max(14px,env(safe-area-inset-bottom))] text-primary-foreground">
+      <Kicker className="mb-1.5 tracking-[0.12em] text-primary-foreground">Your next step</Kicker>
+      <h2 className="mt-0 mb-0.5 text-[17px] font-medium tracking-[-0.015em]">{next.title}</h2>
+      <p className="mt-0 mb-3 line-clamp-2 text-[13px] leading-[1.5] text-primary-foreground/85">{next.detail}</p>
+      {/* Errors sit next to the action that caused them, not off-screen in the list. */}
+      {notice && <div role="alert" className="mb-3 border border-state-fix-border bg-state-fix-bg px-3 py-2.5 text-[13px] leading-[1.45] text-state-fix">{notice}</div>}
+      <Button onClick={() => press("primary", next.run)} aria-busy={pressed === "primary" || undefined} disabled={Boolean(pressed)} className="h-[52px] w-full justify-between bg-background px-4 text-foreground hover:bg-paper focus-visible:outline-background disabled:opacity-100">
+        {next.label}
+        <Icon icon={pressed === "primary" ? LoaderCircle : ArrowRight} size={13} strokeWidth={2.4} className={pressed === "primary" ? "animate-spin" : undefined} />
+      </Button>
+      {next.secondary && (
+        <Button onClick={() => press("secondary", next.secondary!.run)} aria-busy={pressed === "secondary" || undefined} disabled={Boolean(pressed)} className="mt-2 h-12 w-full justify-between border border-primary-foreground bg-transparent px-4 text-primary-foreground hover:bg-primary-foreground/10 focus-visible:outline-background disabled:opacity-100">
+          {next.secondary.label}
+          <Icon icon={pressed === "secondary" ? LoaderCircle : ArrowRight} size={13} strokeWidth={2.4} className={pressed === "secondary" ? "animate-spin" : undefined} />
+        </Button>
+      )}
+    </footer>
+  );
+}
+
+export function CaseHomeScreen({
+  worker,
+  workerCase,
+  language,
+  notice,
+  info,
+  onLanguage,
+  onCard,
+  ...actions
+}: {
+  worker: WorkerProfile;
+  workerCase: WorkerCase;
+  language: string;
+  notice?: string | null;
+  /** Guidance, not an error (e.g. finish in the Aadhaar app). */
+  info?: string | null;
+  onLanguage: () => void;
+  /** Opens the card so far. Shown once the checks are under way. */
+  onCard?: () => void;
+} & CaseActions) {
+  const rows = chosenChecks(workerCase);
   const verified = rows.filter((row) => row.state === "verified").length;
   const name = workerCase.details.declaredName || workerCase.details.fullName || worker.fullName;
   const aadhaarChosen = workerCase.selectedChecks.includes("AADHAAR");
   // A chosen Aadhaar comes first: the other checks are matched to the name and photo it returns.
   const aadhaarPending = aadhaarChosen && workerCase.identity?.status !== "VERIFIED";
-  const needsDetails = !aadhaarChosen && (!workerCase.details.fullName || !workerCase.details.dateOfBirth);
-
-  function actionFor(check: SelectableCheck) {
-    if (check === "AADHAAR") return onAadhaar;
-    if (check === "ECOURTS_SEARCH") return onDetails;
-    return () => onCheck(check);
-  }
-
-  const next = useMemo<NextAction | null>(() => {
-    if (workerCase.status === "DRAFT" && !workerCase.selectedChecks.length) {
-      return { title: "Choose your checks", detail: "Pick the documents you have. About 1 minute.", label: "Start", run: onChooseChecks };
-    }
-    if (workerCase.status === "DRAFT") return { title: "Approve your checks", detail: "Say yes to each check before it runs.", label: "Start", run: onConsent };
-    const aadhaar = rows.find((row) => row.check === "AADHAAR" && (row.needsInput || row.canResubmit));
-    if (aadhaar) {
-      return {
-        title: "Verify your Aadhaar",
-        detail: "Use the Aadhaar app, or DigiLocker if the app does not work. Your other checks are matched to it.",
-        label: "Open Aadhaar app",
-        run: onAadhaar,
-        secondary: { label: "Use DigiLocker", run: onDigiLocker }
-      };
-    }
-    // Documents are matched to the PAN name too; ask for it before the document checks.
-    if (!workerCase.details.declaredName && rows.some((row) => row.check !== "AADHAAR" && (row.needsInput || row.canResubmit))) {
-      return { title: "Add your full name as on PAN", detail: "Initials written in full. Your documents are matched to it.", label: "Add name", run: onName };
-    }
-    if (needsDetails) return { title: "Add your date of birth", detail: "As printed on your ID. Checks are matched to your name and date of birth.", label: "Add details", run: onDetails };
-    const open = rows.find((row) => row.needsInput || row.canResubmit);
-    if (open) {
-      return {
-        title: open.check === "FACE" ? (open.canResubmit ? "Take your selfie again" : "Take a selfie") : `${open.canResubmit ? "Fix" : "Add"} your ${CHECK_INFO[open.check].title}`,
-        detail: open.reason ?? CHECK_INFO[open.check].detail,
-        label: open.canResubmit ? "Fix" : "Add",
-        run: actionFor(open.check)
-      };
-    }
-    return null;
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [workerCase]);
+  const next = useNextAction(workerCase, actions);
 
   return (
     <Screen>
@@ -286,7 +327,7 @@ export function CaseHomeScreen({
                     {row.needsInput && aadhaarPending && row.check !== "AADHAAR" ? (
                       <StateBadge state="queued" label="After Aadhaar" className="shrink-0" />
                     ) : row.needsInput ? (
-                      <button type="button" onClick={actionFor(row.check)} className="label-mono min-h-11 px-1 text-[11px] tracking-[0.1em] text-accent-foreground hover:underline">
+                      <button type="button" onClick={actionFor(row.check, actions)} className="label-mono min-h-11 px-1 text-[11px] tracking-[0.1em] text-accent-foreground hover:underline">
                         Add
                       </button>
                     ) : (
@@ -297,7 +338,7 @@ export function CaseHomeScreen({
                     <div className="mt-1 flex items-start justify-between gap-3">
                       <p className="m-0 text-[13px] leading-[1.5] text-state-fix">{row.reason ?? "This did not match. Check what you entered."}</p>
                       {row.canResubmit && (
-                        <button type="button" onClick={actionFor(row.check)} className="label-mono min-h-11 flex-none px-1 text-[11px] tracking-[0.1em] text-accent-foreground hover:underline">
+                        <button type="button" onClick={actionFor(row.check, actions)} className="label-mono min-h-11 flex-none px-1 text-[11px] tracking-[0.1em] text-accent-foreground hover:underline">
                           Fix
                         </button>
                       )}
@@ -306,7 +347,12 @@ export function CaseHomeScreen({
                 </li>
               ))}
             </ul>
-            {workerCase.card && <p className="mt-2.5 mb-0 text-[13px] text-secondary-text">Card valid until {new Date(workerCase.card.expiresAt).toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric" })}.</p>}
+            {onCard && workerCase.status !== "DRAFT" && (
+              <button type="button" onClick={onCard} className="label-mono mt-1 flex min-h-11 w-full items-center justify-between text-[11px] tracking-[0.1em] text-accent-foreground hover:underline">
+                See your card so far
+                <Icon icon={ArrowRight} size={12} strokeWidth={2.4} />
+              </button>
+            )}
           </div>
         </div>
 
@@ -328,25 +374,7 @@ export function CaseHomeScreen({
         <div className="h-4 flex-none" />
       </main>
       {next ? (
-        // The next step is pinned so its action is always in reach; the checks above scroll.
-        // Inverted so the whole next step stands out, not only its button.
-        <footer className="flex-none bg-primary px-5 pt-3.5 pb-[max(14px,env(safe-area-inset-bottom))] text-primary-foreground">
-          <Kicker className="mb-1.5 tracking-[0.12em] text-primary-foreground">Your next step</Kicker>
-          <h2 className="mt-0 mb-0.5 text-[17px] font-medium tracking-[-0.015em]">{next.title}</h2>
-          <p className="mt-0 mb-3 line-clamp-2 text-[13px] leading-[1.5] text-primary-foreground/85">{next.detail}</p>
-          {/* Errors sit next to the action that caused them, not off-screen in the list. */}
-          {notice && <div role="alert" className="mb-3 border border-state-fix-border bg-state-fix-bg px-3 py-2.5 text-[13px] leading-[1.45] text-state-fix">{notice}</div>}
-          <Button onClick={() => press("primary", next.run)} aria-busy={pressed === "primary" || undefined} disabled={Boolean(pressed)} className="h-[52px] w-full justify-between bg-background px-4 text-foreground hover:bg-paper focus-visible:outline-background disabled:opacity-100">
-            {next.label}
-            <Icon icon={pressed === "primary" ? LoaderCircle : ArrowRight} size={13} strokeWidth={2.4} className={pressed === "primary" ? "animate-spin" : undefined} />
-          </Button>
-          {next.secondary && (
-            <Button onClick={() => press("secondary", next.secondary!.run)} aria-busy={pressed === "secondary" || undefined} disabled={Boolean(pressed)} className="mt-2 h-12 w-full justify-between border border-primary-foreground bg-transparent px-4 text-primary-foreground hover:bg-primary-foreground/10 focus-visible:outline-background disabled:opacity-100">
-              {next.secondary.label}
-              <Icon icon={pressed === "secondary" ? LoaderCircle : ArrowRight} size={13} strokeWidth={2.4} className={pressed === "secondary" ? "animate-spin" : undefined} />
-            </Button>
-          )}
-        </footer>
+        <NextStepFooter next={next} notice={notice} />
       ) : (
         <footer className="flex flex-none items-center gap-2 border-t border-border bg-background px-5 pt-3 pb-[max(16px,env(safe-area-inset-bottom))] text-[13px] text-secondary-text">
           <Icon icon={Lock} size={12} strokeWidth={2} />
