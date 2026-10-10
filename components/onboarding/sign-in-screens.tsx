@@ -359,7 +359,7 @@ export function OtpScreen({
 
 /* 05 Number verified ----------------------------------------------------- */
 
-export function VerifiedScreen({ cardNumber, onContinue }: { cardNumber: string; onContinue: () => void }) {
+export function VerifiedScreen({ cardNumber, onContinue }: { cardNumber: string; onContinue: () => void | Promise<void> }) {
   return (
     <Screen>
       <TopBar />

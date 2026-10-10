@@ -37,7 +37,7 @@ export async function POST(request: Request) {
     // The backend's proof of OTP for this phone. Only server routes read it; the browser never sees it.
     if (result.workerToken) {
       const seconds = Math.floor(((result.workerTokenExpiresAt ?? Date.now() + 12 * 3600_000) - Date.now()) / 1000);
-      jar.set(WORKER_TOKEN_COOKIE, result.workerToken, { httpOnly: true, sameSite: "lax", secure: isProduction(), maxAge: Math.max(60, seconds), path: "/api/worker" });
+      jar.set(WORKER_TOKEN_COOKIE, result.workerToken, { httpOnly: true, sameSite: "lax", secure: isProduction(), maxAge: Math.max(60, seconds), path: "/api" });
     }
     return NextResponse.json({ success: true, verified: true });
   } catch (error) {

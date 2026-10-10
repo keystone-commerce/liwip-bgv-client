@@ -7,7 +7,7 @@ import { maskPhone } from "@/lib/onboarding/data";
 import type { ReturningWorker } from "@/lib/onboarding/service";
 import { cn } from "@/lib/utils";
 import { CheckBar, BgvCard } from "./bgv-card";
-import { Body, Footer, Icon, Kicker, LanguageChip, NumberedStep, PrimaryAction, Screen, SecondaryAction, TextAction, TopBar } from "./shell";
+import { Body, ErrorBanner, Footer, Icon, Kicker, LanguageChip, NumberedStep, PrimaryAction, Screen, SecondaryAction, TextAction, TopBar } from "./shell";
 
 const ENTRY_STEPS = [
   { title: "Choose what to verify", detail: "Aadhaar, PAN, licence and more. Skip what you do not have" },
@@ -93,14 +93,18 @@ export function ReturningScreen({
   onLanguage: () => void;
 }) {
   const [busy, setBusy] = useState(false);
+  const [failed, setFailed] = useState(false);
   const passed = worker.checks.filter((check) => check.state === "verified").length;
   const live = worker.checks.filter((check) => check.state === "checking").length;
   const locked = variant === "r1b";
 
   async function unlock() {
     setBusy(true);
+    setFailed(false);
     try {
       await onUnlock();
+    } catch {
+      setFailed(true);
     } finally {
       setBusy(false);
     }
@@ -123,7 +127,7 @@ export function ReturningScreen({
             {locked ? (
               <>
                 <div className="flex items-center justify-between">
-                  <span className="text-[13.5px] font-medium">{live === 1 ? "1 check in progress" : `${live} checks in progress`}</span>
+                  <span className="text-[13.5px] font-medium">{worker.checks.length === 0 ? "Your checks" : live === 1 ? "1 check in progress" : `${live} checks in progress`}</span>
                   <StateBadge state="queued" label="Locked" />
                 </div>
                 <CheckBar states={worker.checks.map(() => "hidden")} />
@@ -148,6 +152,7 @@ export function ReturningScreen({
           </span>
           <span className="label-mono text-secondary-text">Use your phone’s screen lock</span>
         </div>
+        {failed && <ErrorBanner>Unlock did not work. Try again, or use OTP instead.</ErrorBanner>}
       </Body>
       <Footer>
         <PrimaryAction icon={Fingerprint} busy={busy} onClick={unlock}>Unlock</PrimaryAction>
