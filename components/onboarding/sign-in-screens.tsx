@@ -84,18 +84,18 @@ export function MobileScreen({
 }) {
   const [digits, setDigits] = useState(initial);
   const [busy, setBusy] = useState(false);
-  const [failed, setFailed] = useState(false);
+  const [failed, setFailed] = useState<string | null>(null);
   const complete = digits.length === 10;
   const valid = MOBILE_PATTERN.test(digits);
   const invalid = complete && !valid;
 
   async function send() {
     setBusy(true);
-    setFailed(false);
+    setFailed(null);
     try {
       await onSend(ONBOARDING_TEST_MODE && !valid ? TEST_PHONE : digits);
-    } catch {
-      setFailed(true);
+    } catch (error) {
+      setFailed(error instanceof Error && error.message ? error.message : "We could not send the code. Check your connection and try again.");
     } finally {
       setBusy(false);
     }
@@ -149,7 +149,7 @@ export function MobileScreen({
         </div>
         </form>
         {invalid && <span id="mobile-invalid" className="sr-only">Indian mobile numbers start with 6, 7, 8 or 9.</span>}
-        {failed && <ErrorBanner>We could not send the code. Check your connection and try again.</ErrorBanner>}
+        {failed && <ErrorBanner>{failed}</ErrorBanner>}
         <div className="mt-[22px] flex items-start gap-2.5 border-t border-border pt-4 group-data-[kb=open]/shell:hidden">
           <Icon icon={MessageSquare} size={14} strokeWidth={2} className="mt-[3px] flex-none text-muted-foreground" />
           <p className="m-0 text-[13px] leading-[1.55] text-secondary-text">We send one SMS with a 6-digit code. No marketing messages, ever.</p>
@@ -190,6 +190,7 @@ export function OtpScreen({
   const [focused, setFocused] = useState(false);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<"wrong-code" | "expired" | null>(null);
+  const [notice, setNotice] = useState<string | null>(null);
   const [secondsLeft, setSecondsLeft] = useState(resendAfter);
   const inputRef = useRef<HTMLInputElement>(null);
 
@@ -226,6 +227,7 @@ export function OtpScreen({
     if (ONBOARDING_TEST_MODE && value.length < 6) value = TEST_OTP;
     setBusy(true);
     setError(null);
+    setNotice(null);
     try {
       const result = await onVerify(value);
       if (result !== "ok") {
@@ -233,6 +235,8 @@ export function OtpScreen({
         setCode("");
         inputRef.current?.focus();
       }
+    } catch (failure) {
+      setNotice(failure instanceof Error && failure.message ? failure.message : "We could not check the code. Try again.");
     } finally {
       setBusy(false);
     }
@@ -318,6 +322,7 @@ export function OtpScreen({
             {error === "expired" ? "That code has expired. Get a new code and try again." : "That code did not match. Check the SMS and try again."}
           </ErrorBanner>
         )}
+        {notice && <ErrorBanner>{notice}</ErrorBanner>}
 
         <div className="mt-[18px] flex items-center justify-between group-data-[kb=open]/shell:hidden">
           <StateBadge state="checking" label="Waiting for SMS" />
