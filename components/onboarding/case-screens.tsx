@@ -292,21 +292,7 @@ export function CaseHomeScreen({
           </div>
         )}
 
-        {next ? (
-          <section className="px-5 pt-5 pb-6">
-            <Kicker className="mb-2.5 tracking-[0.12em]">Your next step</Kicker>
-            <div className="border border-foreground bg-background">
-              <div className="px-4 pt-4 pb-3.5">
-                <h2 className="mt-0 mb-1 text-[19px] font-medium tracking-[-0.015em]">{next.title}</h2>
-                <p className="m-0 text-[13.5px] leading-[1.55] text-secondary-text">{next.detail}</p>
-              </div>
-              <Button onClick={next.run} className="h-[50px] w-full justify-between px-4">
-                {next.label} <Icon icon={ArrowRight} size={13} strokeWidth={2.4} />
-              </Button>
-            </div>
-            {next.alternative && <TextAction onClick={next.alternative.run} className="mt-1">{next.alternative.label}</TextAction>}
-          </section>
-        ) : (
+        {!next && (
           <section className="px-5 pt-5 pb-6">
             <Kicker className="mb-2.5 tracking-[0.12em]">Status</Kicker>
             <p className="m-0 text-[14px] leading-[1.55] text-secondary-text">
@@ -314,11 +300,25 @@ export function CaseHomeScreen({
             </p>
           </section>
         )}
+        <div className="h-4 flex-none" />
       </main>
-      <footer className="flex flex-none items-center gap-2 border-t border-border bg-background px-5 pt-3 pb-[max(16px,env(safe-area-inset-bottom))] text-[13px] text-secondary-text">
-        <Icon icon={Lock} size={12} strokeWidth={2} />
-        Your details are used only for these checks.
-      </footer>
+      {next ? (
+        // The next step is pinned so its action is always in reach; the checks above scroll.
+        <footer className="flex-none border-t border-border bg-background px-5 pt-3 pb-[max(14px,env(safe-area-inset-bottom))]">
+          <Kicker className="mb-1.5 tracking-[0.12em]">Your next step</Kicker>
+          <h2 className="mt-0 mb-0.5 text-[17px] font-medium tracking-[-0.015em]">{next.title}</h2>
+          <p className="mt-0 mb-3 line-clamp-2 text-[13px] leading-[1.5] text-secondary-text">{next.detail}</p>
+          <Button onClick={next.run} className="h-[52px] w-full justify-between px-4">
+            {next.label} <Icon icon={ArrowRight} size={13} strokeWidth={2.4} />
+          </Button>
+          {next.alternative && <TextAction onClick={next.alternative.run} className="mt-0.5">{next.alternative.label}</TextAction>}
+        </footer>
+      ) : (
+        <footer className="flex flex-none items-center gap-2 border-t border-border bg-background px-5 pt-3 pb-[max(16px,env(safe-area-inset-bottom))] text-[13px] text-secondary-text">
+          <Icon icon={Lock} size={12} strokeWidth={2} />
+          Your details are used only for these checks.
+        </footer>
+      )}
     </Screen>
   );
 }
