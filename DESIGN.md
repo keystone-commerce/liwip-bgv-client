@@ -182,6 +182,8 @@ Forbidden: any form surface, any table, any panel a worker reads or types into, 
 - Interactive feedback is a colour change only: `color`, `background-color`, `border-color`, `opacity`, 140ms ease. Nothing scales or lifts.
 - **Screen-to-screen transitions** are the one movement allowed: a 28px horizontal slide with a crossfade in the direction of travel, 280ms in and 160ms out, ease `[0.22, 1, 0.36, 1]`. Built with Motion (`motion/react`) in `components/onboarding/onboarding-flow.tsx`. Elements inside a screen do not animate in.
 - **Entry glow:** the bloom on the entry screen fades in each time the screen opens, a CSS opacity transition of 1.6s after 150ms, ease-out. Opacity only; it does not move.
+- **Card reveal:** the one moment that animates inside a screen. It plays once per card on a device, when the Liwip BGV Card is first released (`components/onboarding/card-reveal.tsx`). The card rises in on a spring, the verified check tiles fade up 8px each, 120ms apart, then the title and Continue fade in. With reduced motion everything only fades.
+- The live QR countdown line shrinks linearly over the 2-minute code period. It is a timer, not decoration.
 - The Checking state is the only thing that animates continuously (icon spin, 1.2s linear).
 - `prefers-reduced-motion: reduce` collapses every animation and transition. Screen transitions drop the slide and keep a short fade. Keep the block in `globals.css` intact, and make new animation respect it.
 
