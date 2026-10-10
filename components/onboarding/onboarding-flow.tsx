@@ -355,7 +355,8 @@ export function OnboardingFlow({
       case "name":
         return draft.worker ? (
           <NameScreen
-            initial={draft.worker.fullName}
+            initial={workerCase?.details.declaredName ?? (workerCase?.status === "DRAFT" ? draft.worker.fullName : "")}
+            onBack={workerCase && workerCase.status !== "DRAFT" ? back : undefined}
             language={chip}
             onLanguage={openLanguage}
             onSave={async (fullName) => {
@@ -363,7 +364,8 @@ export function OnboardingFlow({
               setWorkerCase(saved);
               const name = saved.details.declaredName ?? saved.details.fullName ?? fullName;
               update({ worker: { ...draft.worker!, fullName: name, firstName: name.split(" ")[0] } });
-              go(returning ? "home" : "verified", { replace: true });
+              // Opened from home (case already under way): back to home; at sign-in: carry on.
+              go(returning || saved.status !== "DRAFT" ? "home" : "verified", { replace: true });
             }}
           />
         ) : null;
@@ -410,6 +412,7 @@ export function OnboardingFlow({
             onAadhaar={startAadhaar}
             onDigiLocker={startDigiLocker}
             onDetails={() => go("details")}
+            onName={() => go("name")}
             onCheck={(check) => {
               if (check === "FACE") return go("selfie");
               update({ formCheck: check as FormCheck });

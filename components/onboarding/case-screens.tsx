@@ -174,6 +174,7 @@ export function CaseHomeScreen({
   onAadhaar,
   onDigiLocker,
   onDetails,
+  onName,
   onCheck
 }: {
   worker: WorkerProfile;
@@ -188,6 +189,7 @@ export function CaseHomeScreen({
   onAadhaar: () => void | Promise<void>;
   onDigiLocker: () => void | Promise<void>;
   onDetails: () => void;
+  onName: () => void;
   onCheck: (check: SelectableCheck) => void;
 }) {
   const rows = chosenChecks(workerCase);
@@ -229,6 +231,10 @@ export function CaseHomeScreen({
         run: onAadhaar,
         secondary: { label: "Use DigiLocker", run: onDigiLocker }
       };
+    }
+    // Documents are matched to the PAN name too; ask for it before the document checks.
+    if (!workerCase.details.declaredName && rows.some((row) => row.check !== "AADHAAR" && (row.needsInput || row.canResubmit))) {
+      return { title: "Add your full name as on PAN", detail: "Initials written in full. Your documents are matched to it.", label: "Add name", run: onName };
     }
     if (needsDetails) return { title: "Add your date of birth", detail: "As printed on your ID. Checks are matched to your name and date of birth.", label: "Add details", run: onDetails };
     const open = rows.find((row) => row.needsInput || row.canResubmit);
@@ -491,11 +497,13 @@ function useSubmit(action: () => Promise<void>) {
 export function NameScreen({
   initial,
   language,
+  onBack,
   onLanguage,
   onSave
 }: {
   initial: string;
   language: string;
+  onBack?: () => void;
   onLanguage: () => void;
   onSave: (fullName: string) => Promise<void>;
 }) {
@@ -505,8 +513,9 @@ export function NameScreen({
 
   return (
     <FormScreen
-      step="Sign in · 2 of 2"
-      stage={0}
+      step={onBack ? "Your details" : "Sign in · 2 of 2"}
+      stage={onBack ? 2 : 0}
+      onBack={onBack}
       title="What is your full name?"
       lead="As printed on your PAN card, with initials written in full. Your documents are matched to this name."
       language={language}
