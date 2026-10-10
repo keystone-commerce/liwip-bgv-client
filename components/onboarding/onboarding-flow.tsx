@@ -213,6 +213,7 @@ export function OnboardingFlow({
   }, [ready, screen, draft.worker]);
 
   const startDigiLocker = useCallback(async () => {
+    setNotice(null);
     try {
       const { url } = await workerCaseApi.startDigiLocker();
       window.location.assign(url);
@@ -247,6 +248,7 @@ export function OnboardingFlow({
   }, [screen, running]);
 
   const startAadhaar = useCallback(async () => {
+    setNotice(null);
     try {
       const { url, intentData } = await workerCaseApi.startAadhaar();
       const appUrl = intentData ? aadhaarAppUrl(intentData) : null;

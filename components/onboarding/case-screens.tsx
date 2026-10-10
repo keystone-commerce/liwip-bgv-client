@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState, type ReactNode } from "react";
-import { ArrowRight, Camera, Check, CircleAlert, Lock } from "lucide-react";
+import { ArrowRight, Camera, Check, CircleAlert, LoaderCircle, Lock } from "lucide-react";
 import { StateBadge } from "@/components/state-badge";
 import { Button } from "@/components/ui/button";
 import { formatPhone, HELP_URL } from "@/lib/onboarding/data";
@@ -160,7 +160,7 @@ export function CaseConsentScreen({
 
 /* Worker home: the real case ------------------------------------------------ */
 
-type NextAction = { title: string; detail: string; label: string; run: () => void; secondary?: { label: string; run: () => void } };
+type NextAction = { title: string; detail: string; label: string; run: () => void | Promise<void>; secondary?: { label: string; run: () => void | Promise<void> } };
 
 export function CaseHomeScreen({
   worker,
@@ -185,12 +185,23 @@ export function CaseHomeScreen({
   onLanguage: () => void;
   onChooseChecks: () => void;
   onConsent: () => void;
-  onAadhaar: () => void;
-  onDigiLocker: () => void;
+  onAadhaar: () => void | Promise<void>;
+  onDigiLocker: () => void | Promise<void>;
   onDetails: () => void;
   onCheck: (check: SelectableCheck) => void;
 }) {
   const rows = chosenChecks(workerCase);
+  // One action at a time: a tap shows progress and further taps wait for it.
+  const [pressed, setPressed] = useState<"primary" | "secondary" | null>(null);
+  async function press(which: "primary" | "secondary", action: () => void | Promise<void>) {
+    if (pressed) return;
+    setPressed(which);
+    try {
+      await action();
+    } finally {
+      setPressed(null);
+    }
+  }
   const verified = rows.filter((row) => row.state === "verified").length;
   const name = workerCase.details.fullName || worker.fullName;
   const aadhaarChosen = workerCase.selectedChecks.includes("AADHAAR");
@@ -293,7 +304,7 @@ export function CaseHomeScreen({
           </div>
         </div>
 
-        {notice && <div className="px-5"><ErrorBanner>{notice}</ErrorBanner></div>}
+        {notice && !next && <div className="px-5"><ErrorBanner>{notice}</ErrorBanner></div>}
         {info && (
           <div className="px-5">
             <p role="status" className="mt-4 mb-0 border border-border bg-background px-3.5 py-3 text-[13px] leading-[1.5] text-secondary-text">{info}</p>
@@ -317,12 +328,16 @@ export function CaseHomeScreen({
           <Kicker className="mb-1.5 tracking-[0.12em] text-primary-foreground">Your next step</Kicker>
           <h2 className="mt-0 mb-0.5 text-[17px] font-medium tracking-[-0.015em]">{next.title}</h2>
           <p className="mt-0 mb-3 line-clamp-2 text-[13px] leading-[1.5] text-primary-foreground/85">{next.detail}</p>
-          <Button onClick={next.run} className="h-[52px] w-full justify-between bg-background px-4 text-foreground hover:bg-paper focus-visible:outline-background">
-            {next.label} <Icon icon={ArrowRight} size={13} strokeWidth={2.4} />
+          {/* Errors sit next to the action that caused them, not off-screen in the list. */}
+          {notice && <div role="alert" className="mb-3 border border-state-fix-border bg-state-fix-bg px-3 py-2.5 text-[13px] leading-[1.45] text-state-fix">{notice}</div>}
+          <Button onClick={() => press("primary", next.run)} aria-busy={pressed === "primary" || undefined} disabled={Boolean(pressed)} className="h-[52px] w-full justify-between bg-background px-4 text-foreground hover:bg-paper focus-visible:outline-background disabled:opacity-100">
+            {next.label}
+            <Icon icon={pressed === "primary" ? LoaderCircle : ArrowRight} size={13} strokeWidth={2.4} className={pressed === "primary" ? "animate-spin" : undefined} />
           </Button>
           {next.secondary && (
-            <Button onClick={next.secondary.run} className="mt-2 h-12 w-full justify-between border border-primary-foreground bg-transparent px-4 text-primary-foreground hover:bg-primary-foreground/10 focus-visible:outline-background">
-              {next.secondary.label} <Icon icon={ArrowRight} size={13} strokeWidth={2.4} />
+            <Button onClick={() => press("secondary", next.secondary!.run)} aria-busy={pressed === "secondary" || undefined} disabled={Boolean(pressed)} className="mt-2 h-12 w-full justify-between border border-primary-foreground bg-transparent px-4 text-primary-foreground hover:bg-primary-foreground/10 focus-visible:outline-background disabled:opacity-100">
+              {next.secondary.label}
+              <Icon icon={pressed === "secondary" ? LoaderCircle : ArrowRight} size={13} strokeWidth={2.4} className={pressed === "secondary" ? "animate-spin" : undefined} />
             </Button>
           )}
         </footer>
