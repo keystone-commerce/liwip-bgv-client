@@ -375,7 +375,7 @@ export function VerifiedScreen({ cardNumber, onContinue }: { cardNumber: string;
         <BgvCard cardNumber={cardNumber} className="mt-[26px]">
           <div className="px-3 pt-0.5 pb-1">
             <BgvCardRow label="Mobile number" state="verified" />
-            <BgvCardRow label="Choose the work you do" state="queued" stateLabel="Next" muted />
+            <BgvCardRow label="Choose what to verify" state="queued" stateLabel="Next" muted />
           </div>
         </BgvCard>
       </Body>

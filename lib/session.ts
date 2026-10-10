@@ -1,5 +1,8 @@
 import { createHmac, timingSafeEqual } from "node:crypto";
 
+/** httpOnly cookie holding the backend worker token issued at OTP verify. */
+export const WORKER_TOKEN_COOKIE = "liwip_worker_token";
+
 function sessionSecret(): string {
   const configured = process.env.WORKER_SESSION_SECRET;
   if (configured) return configured;

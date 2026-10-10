@@ -3,6 +3,7 @@
 // app/api/* routes without touching the screens.
 
 import type { CardCheck, LanguageCode } from "./data";
+import { workerCaseApi } from "./worker-case";
 
 export interface WorkerProfile {
   /** The verification case. Used with the backend and support, not shown on the card. */
@@ -107,6 +108,55 @@ export const mockOnboardingService: OnboardingService = {
 
   async unlock() {
     await wait(700);
+    return { ok: true };
+  },
+
+  async forgetDevice() {
+    writeStorage(RETURNING_KEY, null);
+  }
+};
+
+async function postJson(path: string, body: unknown) {
+  const response = await fetch(path, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body), cache: "no-store" });
+  const data = await response.json().catch(() => null);
+  return { ok: response.ok, status: response.status, data };
+}
+
+/** Real backend: OTP through app/api/auth/*, the case through app/api/worker/case. */
+export const apiOnboardingService: OnboardingService = {
+  async sendOtp(phone) {
+    const result = await postJson("/api/auth/send-otp", { phone });
+    if (!result.ok) throw new Error(result.data?.message || "Could not send the code");
+    return { resendAfterSeconds: Number(result.data?.resendAfterSeconds) || 30 };
+  },
+
+  async verifyOtp(phone, code) {
+    const result = await postJson("/api/auth/verify-otp", { phone, otp: code });
+    if (result.status === 401 || result.status === 400) return { ok: false, reason: "wrong-code" };
+    if (!result.ok) throw new Error(result.data?.message || "Could not verify the code");
+    const workerCase = await workerCaseApi.get();
+    const fullName = workerCase.details.fullName ?? "";
+    return {
+      ok: true,
+      worker: { applicationId: workerCase.applicationId, cardNumber: workerCase.cardNumber ?? "", firstName: fullName.split(" ")[0] ?? "", fullName, phone }
+    };
+  },
+
+  async enableQuickSignIn(worker) {
+    // Passkeys are not wired to the backend yet; remember the worker on this device only.
+    writeStorage(RETURNING_KEY, { ...worker, checks: [] } satisfies ReturningWorker);
+    return { ok: true };
+  },
+
+  async recordConsent() {
+    // Consent is recorded per chosen check through workerCaseApi.consent.
+  },
+
+  async getReturningWorker() {
+    return readStorage<ReturningWorker>(RETURNING_KEY);
+  },
+
+  async unlock() {
     return { ok: true };
   },
 
