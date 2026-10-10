@@ -30,7 +30,19 @@ function plural(count: number, one: string, many: string) {
 }
 
 function split(rows: CardRow[]) {
-  return { verified: rows.filter((row) => row.state === "verified"), running: rows.filter((row) => row.state !== "verified") };
+  return {
+    verified: rows.filter((row) => row.state === "verified"),
+    review: rows.filter((row) => row.state === "review"),
+    failed: rows.filter((row) => row.state === "fix"),
+    running: rows.filter((row) => row.state === "queued" || row.state === "checking")
+  };
+}
+
+/** Checks a reviewer still has to approve; the card is out without them. */
+function reviewNote(count: number): string {
+  return count === 1
+    ? "1 check is in review. It is added to your card once a reviewer approves it."
+    : `${count} checks are in review. They are added to your card once a reviewer approves them.`;
 }
 
 /** Live code for a card whose QR is on; tells the parent once the session is gone. */
@@ -186,7 +198,7 @@ export function CardHomeScreen({
   onSignedOut?: () => void;
 }) {
   const live = useCardLiveCode(card, onSignedOut);
-  const { verified } = split(cardRows(card.checks));
+  const { verified, review } = split(cardRows(card.checks));
   const qr = qrOn(card);
   return (
     <Screen>
@@ -200,6 +212,11 @@ export function CardHomeScreen({
         <p className="tabular mt-2.5 mb-0 text-[13px] text-secondary-text">
           {card.scansLastWeek > 0 ? `Checked ${plural(card.scansLastWeek, "time", "times")} in the last 7 days.` : "Nobody checked your card in the last 7 days."}
         </p>
+        {review.length > 0 && (
+          <p role="status" className="mt-2 mb-0 text-[13px] leading-[1.5] text-state-review">
+            {reviewNote(review.length)}
+          </p>
+        )}
 
         {live.offline && (
           <div className="mt-4">
@@ -371,8 +388,28 @@ export function LargeQrScreen({ card, onDone, onSignedOut }: { card: IssuedCardV
 
 /* B4 All checks ------------------------------------------------------------------- */
 
+function PendingRows({ heading, note, rows }: { heading: string; note?: string; rows: CardRow[] }) {
+  return (
+    <>
+      <Kicker className="mt-6 tracking-[0.12em]">{heading}</Kicker>
+      {note && <p className="mt-1.5 mb-0 text-[13px] leading-[1.5] text-secondary-text">{note}</p>}
+      <ul className="mt-2 mb-0 list-none border-t border-border p-0">
+        {rows.map((row) => (
+          <li key={row.key} className="flex min-h-14 items-center gap-2.5 border-b border-line-soft py-2">
+            <span className="min-w-0 flex-1">
+              <span className="block text-[14.5px] font-medium">{row.name}</span>
+              <span className="block font-mono text-[11px] tracking-[0.06em] text-secondary-text uppercase">{row.source}</span>
+            </span>
+            <StateBadge state={row.state} className="shrink-0" />
+          </li>
+        ))}
+      </ul>
+    </>
+  );
+}
+
 export function CardChecksScreen({ card, onBack, onAddChecks }: { card: CardView; onBack: () => void; onAddChecks: () => void }) {
-  const { verified, running } = split(cardRows(card.checks));
+  const { verified, review, failed, running } = split(cardRows(card.checks));
   return (
     <Screen>
       <TopBar onBack={onBack} step="Card · checks" />
@@ -397,22 +434,9 @@ export function CardChecksScreen({ card, onBack, onAddChecks }: { card: CardView
           </ul>
         )}
 
-        {running.length > 0 && (
-          <>
-            <Kicker className="mt-6 tracking-[0.12em]">Still running</Kicker>
-            <ul className="mt-2 mb-0 list-none border-t border-border p-0">
-              {running.map((row) => (
-                <li key={row.key} className="flex min-h-14 items-center gap-2.5 border-b border-line-soft py-2">
-                  <span className="min-w-0 flex-1">
-                    <span className="block text-[14.5px] font-medium">{row.name}</span>
-                    <span className="block font-mono text-[11px] tracking-[0.06em] text-secondary-text uppercase">{row.source}</span>
-                  </span>
-                  <StateBadge state={row.state} className="shrink-0" />
-                </li>
-              ))}
-            </ul>
-          </>
-        )}
+        {review.length > 0 && <PendingRows heading="In review" note={reviewNote(review.length)} rows={review} />}
+        {running.length > 0 && <PendingRows heading="Still running" rows={running} />}
+        {failed.length > 0 && <PendingRows heading="Did not pass" note="Fix these from your home screen to add them to your card." rows={failed} />}
       </Body>
       <Footer>
         <SecondaryAction onClick={onAddChecks}>Add more checks</SecondaryAction>
