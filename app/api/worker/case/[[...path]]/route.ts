@@ -16,6 +16,7 @@ const JSON_ROUTES: Record<string, { method: "PUT" | "POST"; body?: z.ZodTypeAny 
   details: { method: "PUT", body: z.object({ fullName: text(80), dateOfBirth: text(10), fatherName: text(80), address: text(300) }).partial().strict() },
   consent: { method: "POST", body: z.object({ textVersion: text(40), items: z.array(text(30)).max(12) }).strict() },
   "identity/aadhaar/start": { method: "POST" },
+  "identity/digilocker/start": { method: "POST" },
   "identity/aadhaar/complete": { method: "POST" }
 };
 const CHECK_INPUT = z.record(z.string().max(40), text(120)).refine((value) => Object.keys(value).length <= 4, "Too many fields");

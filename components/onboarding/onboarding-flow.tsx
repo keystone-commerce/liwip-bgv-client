@@ -121,7 +121,7 @@ export function OnboardingFlow({
         nextDraft = { ...nextDraft, phone: nextDraft.phone || DEMO_WORKER.phone, worker: nextDraft.worker ?? DEMO_WORKER };
         if (requested === "returning") nextReturning = nextReturning ?? DEMO_RETURNING;
         nextScreen = requested;
-      } else if (params.get("identity") === "aadhaar" && nextDraft.worker) {
+      } else if ((params.get("identity") === "aadhaar" || params.get("identity") === "digilocker") && nextDraft.worker) {
         // Back from the Aadhaar page: home finishes the check.
         aadhaarReturn.current = true;
         nextScreen = "home";
@@ -212,6 +212,15 @@ export function OnboardingFlow({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [ready, screen, draft.worker]);
 
+  const startDigiLocker = useCallback(async () => {
+    try {
+      const { url } = await workerCaseApi.startDigiLocker();
+      window.location.assign(url);
+    } catch (failure) {
+      setNotice(failure instanceof Error ? failure.message : "DigiLocker could not be opened. Try again.");
+    }
+  }, []);
+
   // While Aadhaar is pending in the app, check for the result every 4 seconds and when the worker returns.
   const aadhaarPending = workerCase?.identity?.status === "PENDING";
   useEffect(() => {
@@ -249,7 +258,7 @@ export function OnboardingFlow({
       } else if (!intentData) {
         window.location.assign(url);
       } else {
-        setNotice("Aadhaar needs the Aadhaar app. Open this page on the phone where the app is installed.");
+        setInfo("The Aadhaar app needs a phone. Use DigiLocker here, or open this page on your phone.");
       }
     } catch (failure) {
       setNotice(failure instanceof Error ? failure.message : "Aadhaar could not be opened. Try again.");
@@ -397,6 +406,7 @@ export function OnboardingFlow({
             onChooseChecks={() => go("checks")}
             onConsent={() => go("case-consent")}
             onAadhaar={startAadhaar}
+            onDigiLocker={startDigiLocker}
             onDetails={() => go("details")}
             onCheck={(check) => {
               if (check === "FACE") return go("selfie");

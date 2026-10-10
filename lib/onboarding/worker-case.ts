@@ -123,6 +123,7 @@ export const workerCaseApi = {
   consent: (items: string[]) => request<WorkerCase>("/consent", json("POST", { textVersion: CASE_CONSENT_VERSION, items })),
   saveDetails: (details: { fullName?: string; dateOfBirth?: string; fatherName?: string; address?: string }) => request<WorkerCase>("/details", json("PUT", details)),
   startAadhaar: () => request<{ url: string; intentData: string | null }>("/identity/aadhaar/start", json("POST")),
+  startDigiLocker: () => request<{ url: string }>("/identity/digilocker/start", json("POST")),
   completeAadhaar: () => request<WorkerCase>("/identity/aadhaar/complete", json("POST")),
   submitCheck: (check: Exclude<SelectableCheck, "AADHAAR" | "FACE">, input: Record<string, string>) =>
     request<WorkerCase>(`/checks/${check.toLowerCase()}`, json("POST", input)),

@@ -160,7 +160,7 @@ export function CaseConsentScreen({
 
 /* Worker home: the real case ------------------------------------------------ */
 
-type NextAction = { title: string; detail: string; label: string; run: () => void };
+type NextAction = { title: string; detail: string; label: string; run: () => void; secondary?: { label: string; run: () => void } };
 
 export function CaseHomeScreen({
   worker,
@@ -172,6 +172,7 @@ export function CaseHomeScreen({
   onChooseChecks,
   onConsent,
   onAadhaar,
+  onDigiLocker,
   onDetails,
   onCheck
 }: {
@@ -185,6 +186,7 @@ export function CaseHomeScreen({
   onChooseChecks: () => void;
   onConsent: () => void;
   onAadhaar: () => void;
+  onDigiLocker: () => void;
   onDetails: () => void;
   onCheck: (check: SelectableCheck) => void;
 }) {
@@ -208,7 +210,15 @@ export function CaseHomeScreen({
     }
     if (workerCase.status === "DRAFT") return { title: "Approve your checks", detail: "Say yes to each check before it runs.", label: "Start", run: onConsent };
     const aadhaar = rows.find((row) => row.check === "AADHAAR" && (row.needsInput || row.canResubmit));
-    if (aadhaar) return { title: "Verify your Aadhaar", detail: "In the official Aadhaar app. Your other checks are matched to the name and photo it returns.", label: "Open Aadhaar", run: onAadhaar };
+    if (aadhaar) {
+      return {
+        title: "Verify your Aadhaar",
+        detail: "Use the Aadhaar app, or DigiLocker if the app does not work. Your other checks are matched to it.",
+        label: "Open Aadhaar app",
+        run: onAadhaar,
+        secondary: { label: "Use DigiLocker", run: onDigiLocker }
+      };
+    }
     if (needsDetails) return { title: "Add your date of birth", detail: "As printed on your ID. Checks are matched to your name and date of birth.", label: "Add details", run: onDetails };
     const open = rows.find((row) => row.needsInput || row.canResubmit);
     if (open) {
@@ -310,6 +320,11 @@ export function CaseHomeScreen({
           <Button onClick={next.run} className="h-[52px] w-full justify-between bg-background px-4 text-foreground hover:bg-paper focus-visible:outline-background">
             {next.label} <Icon icon={ArrowRight} size={13} strokeWidth={2.4} />
           </Button>
+          {next.secondary && (
+            <Button onClick={next.secondary.run} className="mt-2 h-12 w-full justify-between border border-primary-foreground bg-transparent px-4 text-primary-foreground hover:bg-primary-foreground/10 focus-visible:outline-background">
+              {next.secondary.label} <Icon icon={ArrowRight} size={13} strokeWidth={2.4} />
+            </Button>
+          )}
         </footer>
       ) : (
         <footer className="flex flex-none items-center gap-2 border-t border-border bg-background px-5 pt-3 pb-[max(16px,env(safe-area-inset-bottom))] text-[13px] text-secondary-text">
