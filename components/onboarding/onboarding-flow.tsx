@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { AnimatePresence, motion, useReducedMotion } from "motion/react";
 import { type LanguageCode, LANGUAGES } from "@/lib/onboarding/data";
-import { apiOnboardingService, type OnboardingService, type ReturningWorker, type WorkerProfile } from "@/lib/onboarding/service";
+import { apiOnboardingService, canUseQuickSignIn, type OnboardingService, type ReturningWorker, type WorkerProfile } from "@/lib/onboarding/service";
 import { CaseError, workerCaseApi, type SelectableCheck, type WorkerCase } from "@/lib/onboarding/worker-case";
 import { CaseConsentScreen, CaseHomeScreen, CheckFormScreen, ChooseChecksScreen, DetailsScreen, SelfieScreen, type FormCheck } from "./case-screens";
 import { EntryScreen, ReturningScreen } from "./entry-screens";
@@ -241,8 +241,10 @@ export function OnboardingFlow({
             language={chip}
             onLanguage={openLanguage}
             onUnlock={async () => {
+              // Throws when the passkey is cancelled or rejected; the screen shows why.
               const result = await service.unlock();
               if (result.ok) {
+                setWorkerCase(null);
                 update({ worker: returning, phone: returning.phone });
                 go("home", { replace: true });
               }
@@ -315,8 +317,9 @@ export function OnboardingFlow({
         return draft.worker ? (
           <VerifiedScreen
             cardNumber={draft.worker.cardNumber}
-            onContinue={() => {
-              const canOffer = !draft.quickSignInOffered && typeof window !== "undefined" && "PublicKeyCredential" in window;
+            onContinue={async () => {
+              // Offer quick sign-in only where this phone has its own screen-lock authenticator.
+              const canOffer = !draft.quickSignInOffered && (await canUseQuickSignIn());
               go(canOffer ? "quick-sign-in" : "home", { replace: true });
             }}
           />

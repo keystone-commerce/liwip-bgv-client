@@ -3,6 +3,7 @@
 // app/api/* routes without touching the screens.
 
 import type { CardCheck, LanguageCode } from "./data";
+import { browserSupportsWebAuthn, startAuthentication, startRegistration } from "@simplewebauthn/browser";
 import { workerCaseApi } from "./worker-case";
 
 export interface WorkerProfile {
@@ -143,7 +144,13 @@ export const apiOnboardingService: OnboardingService = {
   },
 
   async enableQuickSignIn(worker) {
-    // Passkeys are not wired to the backend yet; remember the worker on this device only.
+    // A real passkey: the backend issues the challenge and stores the public key.
+    const options = await postJson("/api/auth/passkey/register-options", { displayName: worker.fullName || undefined });
+    if (!options.ok) throw new Error(options.data?.message || "Quick sign-in could not be turned on");
+    const credential = await startRegistration({ optionsJSON: options.data });
+    const verified = await postJson("/api/auth/passkey/register-verify", credential);
+    if (!verified.ok) throw new Error(verified.data?.message || "Quick sign-in could not be turned on");
+    // Only enough to greet the worker on this device. Their case loads after unlock.
     writeStorage(RETURNING_KEY, { ...worker, checks: [] } satisfies ReturningWorker);
     return { ok: true };
   },
@@ -157,6 +164,11 @@ export const apiOnboardingService: OnboardingService = {
   },
 
   async unlock() {
+    const options = await postJson("/api/auth/passkey/login-options", {});
+    if (!options.ok) throw new Error(options.data?.message || "Unlock did not work");
+    const credential = await startAuthentication({ optionsJSON: options.data });
+    const verified = await postJson("/api/auth/passkey/login-verify", credential);
+    if (!verified.ok) throw new Error(verified.data?.message || "Unlock did not work");
     return { ok: true };
   },
 
@@ -164,3 +176,12 @@ export const apiOnboardingService: OnboardingService = {
     writeStorage(RETURNING_KEY, null);
   }
 };
+
+/** Quick sign-in needs a passkey on this phone, unlocked by its own screen lock. */
+export async function canUseQuickSignIn(): Promise<boolean> {
+  try {
+    return browserSupportsWebAuthn() && (await window.PublicKeyCredential.isUserVerifyingPlatformAuthenticatorAvailable());
+  } catch {
+    return false;
+  }
+}
