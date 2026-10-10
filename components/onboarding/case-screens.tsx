@@ -302,11 +302,12 @@ export function CaseHomeScreen({
       </main>
       {next ? (
         // The next step is pinned so its action is always in reach; the checks above scroll.
-        <footer className="flex-none border-t border-border bg-background px-5 pt-3 pb-[max(14px,env(safe-area-inset-bottom))]">
-          <Kicker className="mb-1.5 tracking-[0.12em]">Your next step</Kicker>
+        // Inverted so the whole next step stands out, not only its button.
+        <footer className="flex-none bg-primary px-5 pt-3.5 pb-[max(14px,env(safe-area-inset-bottom))] text-primary-foreground">
+          <Kicker className="mb-1.5 tracking-[0.12em] text-primary-foreground">Your next step</Kicker>
           <h2 className="mt-0 mb-0.5 text-[17px] font-medium tracking-[-0.015em]">{next.title}</h2>
-          <p className="mt-0 mb-3 line-clamp-2 text-[13px] leading-[1.5] text-secondary-text">{next.detail}</p>
-          <Button onClick={next.run} className="h-[52px] w-full justify-between px-4">
+          <p className="mt-0 mb-3 line-clamp-2 text-[13px] leading-[1.5] text-primary-foreground/85">{next.detail}</p>
+          <Button onClick={next.run} className="h-[52px] w-full justify-between bg-background px-4 text-foreground hover:bg-paper focus-visible:outline-background">
             {next.label} <Icon icon={ArrowRight} size={13} strokeWidth={2.4} />
           </Button>
         </footer>
