@@ -1,16 +1,17 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { AnimatePresence, motion, useReducedMotion } from "motion/react";
-import { type LanguageCode, LANGUAGES, WORK_TYPES, type WorkTypeId } from "@/lib/onboarding/data";
-import { mockOnboardingService, type OnboardingService, type ReturningWorker, type WorkerProfile } from "@/lib/onboarding/service";
+import { type LanguageCode, LANGUAGES } from "@/lib/onboarding/data";
+import { apiOnboardingService, type OnboardingService, type ReturningWorker, type WorkerProfile } from "@/lib/onboarding/service";
+import { CaseError, workerCaseApi, type SelectableCheck, type WorkerCase } from "@/lib/onboarding/worker-case";
+import { CaseConsentScreen, CaseHomeScreen, CheckFormScreen, ChooseChecksScreen, DetailsScreen, SelfieScreen, type FormCheck } from "./case-screens";
 import { EntryScreen, ReturningScreen } from "./entry-screens";
-import { ChooseWorkScreen, ConsentScreen, HomeScreen, PackageScreen } from "./journey-screens";
 import { LanguageScreen, MobileScreen, OtpScreen, QuickSignInScreen, VerifiedScreen } from "./sign-in-screens";
 
-export type ScreenId = "entry" | "returning" | "language" | "mobile" | "otp" | "verified" | "quick-sign-in" | "home" | "work" | "package" | "consent";
+export type ScreenId = "entry" | "returning" | "language" | "mobile" | "otp" | "verified" | "quick-sign-in" | "home" | "checks" | "case-consent" | "details" | "check-form" | "selfie";
 
-const SCREENS: ScreenId[] = ["entry", "returning", "language", "mobile", "otp", "verified", "quick-sign-in", "home", "work", "package", "consent"];
+const SCREENS: ScreenId[] = ["entry", "returning", "language", "mobile", "otp", "verified", "quick-sign-in", "home", "checks", "case-consent", "details", "check-form", "selfie"];
 
 interface Draft {
   language: LanguageCode;
@@ -18,15 +19,15 @@ interface Draft {
   phone: string;
   resendAfter: number;
   worker?: WorkerProfile;
-  workType?: WorkTypeId;
-  consentDone: boolean;
+  /** The document form open on the check-form screen. */
+  formCheck?: FormCheck;
   quickSignInOffered: boolean;
 }
 
-const EMPTY_DRAFT: Draft = { language: "en", languageChosen: false, phone: "", resendAfter: 30, consentDone: false, quickSignInOffered: false };
+const EMPTY_DRAFT: Draft = { language: "en", languageChosen: false, phone: "", resendAfter: 30, quickSignInOffered: false };
 // Bump the version whenever the shape of Draft or WorkerProfile changes, so a browser
-// holding an older draft starts fresh instead of rendering missing fields (v2: cardNumber).
-const DRAFT_KEY = "liwip-onboarding-draft-v2";
+// holding an older draft starts fresh instead of rendering missing fields (v3: real case, chosen checks).
+const DRAFT_KEY = "liwip-onboarding-draft-v3";
 
 const DEMO_WORKER: WorkerProfile = { applicationId: "APP-240916", cardNumber: "LBC 2409 1673", firstName: "Sandeep", fullName: "Sandeep Meena", phone: "9876543210" };
 const DEMO_RETURNING: ReturningWorker = {
@@ -48,8 +49,8 @@ const DEMO_RETURNING: ReturningWorker = {
 function isReachable(screen: ScreenId, draft: Draft, returning: ReturningWorker | null) {
   if (screen === "otp") return draft.phone.length === 10;
   if (screen === "returning") return Boolean(returning);
-  if (["verified", "quick-sign-in", "home", "work"].includes(screen)) return Boolean(draft.worker);
-  if (screen === "package" || screen === "consent") return Boolean(draft.worker && draft.workType);
+  if (screen === "check-form") return Boolean(draft.worker && draft.formCheck);
+  if (["verified", "quick-sign-in", "home", "checks", "case-consent", "details", "selfie"].includes(screen)) return Boolean(draft.worker);
   return true;
 }
 
@@ -73,7 +74,7 @@ function writeDraft(draft: Draft, screen: ScreenId) {
 const EASE = [0.22, 1, 0.36, 1] as const;
 
 export function OnboardingFlow({
-  service = mockOnboardingService,
+  service = apiOnboardingService,
   // Entry ships as 1b, the dark variant. ?entry=light shows 2a for comparison.
   entryTone = "dark",
   returningVariant = "r1b"
@@ -91,6 +92,10 @@ export function OnboardingFlow({
   const [languageReturn, setLanguageReturn] = useState<ScreenId | null>(null);
   const [tone, setTone] = useState(entryTone);
   const [variant, setVariant] = useState(returningVariant);
+  const [workerCase, setWorkerCase] = useState<WorkerCase | null>(null);
+  const [notice, setNotice] = useState<string | null>(null);
+  // Set once when the page loads on the return from the Aadhaar page.
+  const aadhaarReturn = useRef(false);
   const reduceMotion = useReducedMotion();
 
   // Restore: dev review params first, then the session draft, then a returning worker.
@@ -113,12 +118,12 @@ export function OnboardingFlow({
       if (process.env.NODE_ENV !== "production" && requested && SCREENS.includes(requested)) {
         // Design review: open any screen directly with demo data behind it.
         nextDraft = { ...nextDraft, phone: nextDraft.phone || DEMO_WORKER.phone, worker: nextDraft.worker ?? DEMO_WORKER };
-        if (requested === "package" || requested === "consent") nextDraft.workType = nextDraft.workType ?? "delivery";
         if (requested === "returning") nextReturning = nextReturning ?? DEMO_RETURNING;
-        // ?work=delivery opens worker home after work is chosen and consent given (06b).
-        const work = params.get("work") as WorkTypeId | null;
-        if (work && WORK_TYPES.some((item) => item.id === work)) nextDraft = { ...nextDraft, workType: work, consentDone: true };
         nextScreen = requested;
+      } else if (params.get("identity") === "aadhaar" && nextDraft.worker) {
+        // Back from the Aadhaar page: home finishes the check.
+        aadhaarReturn.current = true;
+        nextScreen = "home";
       } else if (stored?.screen && isReachable(stored.screen, nextDraft, nextReturning)) {
         nextScreen = stored.screen;
       }
@@ -126,7 +131,9 @@ export function OnboardingFlow({
       setDraft(nextDraft);
       setReturning(nextReturning);
       setScreen(nextScreen);
-      window.history.replaceState({ screen: nextScreen }, "", window.location.pathname + window.location.search);
+      params.delete("identity");
+      const query = params.toString();
+      window.history.replaceState({ screen: nextScreen }, "", window.location.pathname + (query ? `?${query}` : ""));
       setReady(true);
     })();
     return () => {
@@ -176,6 +183,50 @@ export function OnboardingFlow({
 
   const languageCode = LANGUAGES.find((item) => item.code === draft.language)?.code ?? "en";
   const chip = languageCode === "en" ? "EN" : languageCode.toUpperCase();
+
+  /** Loads the case. A missing or expired worker session sends the worker to sign in again. */
+  const loadCase = useCallback(async () => {
+    try {
+      if (aadhaarReturn.current) {
+        aadhaarReturn.current = false;
+        setWorkerCase(await workerCaseApi.completeAadhaar());
+      } else {
+        setWorkerCase(await workerCaseApi.get());
+      }
+      setNotice(null);
+    } catch (failure) {
+      if (failure instanceof CaseError && failure.status === 401) {
+        setDraft((current) => ({ ...current, worker: undefined }));
+        setScreen("mobile");
+        return;
+      }
+      setNotice(failure instanceof Error ? failure.message : "Your case could not be loaded. Try again.");
+    }
+  }, []);
+
+  useEffect(() => {
+    if (!ready || !draft.worker || (screen !== "home" && workerCase)) return;
+    const timer = window.setTimeout(() => void loadCase(), 0);
+    return () => window.clearTimeout(timer);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [ready, screen, draft.worker]);
+
+  // While a check runs, refresh every 4 seconds so states update on their own.
+  const running = workerCase?.checks.some((check) => check.status === "QUEUED" || check.status === "PROCESSING");
+  useEffect(() => {
+    if (screen !== "home" || !running) return;
+    const timer = window.setInterval(() => void workerCaseApi.get().then(setWorkerCase).catch(() => undefined), 4000);
+    return () => window.clearInterval(timer);
+  }, [screen, running]);
+
+  const startAadhaar = useCallback(async () => {
+    try {
+      const { url } = await workerCaseApi.startAadhaar();
+      window.location.assign(url);
+    } catch (failure) {
+      setNotice(failure instanceof Error ? failure.message : "Aadhaar could not be opened. Try again.");
+    }
+  }, []);
 
   function render() {
     switch (screen) {
@@ -288,50 +339,99 @@ export function OnboardingFlow({
         ) : null;
 
       case "home":
-        return draft.worker ? (
-          <HomeScreen
+        return draft.worker && workerCase ? (
+          <CaseHomeScreen
             worker={draft.worker}
+            workerCase={workerCase}
             language={chip}
-            workType={draft.workType}
-            consentDone={draft.consentDone}
+            notice={notice}
             onLanguage={openLanguage}
-            onChooseWork={() => go("work")}
-            onConsent={() => go("consent")}
+            onChooseChecks={() => go("checks")}
+            onConsent={() => go("case-consent")}
+            onAadhaar={startAadhaar}
+            onDetails={() => go("details")}
+            onCheck={(check) => {
+              if (check === "FACE") return go("selfie");
+              update({ formCheck: check as FormCheck });
+              go("check-form");
+            }}
           />
-        ) : null;
+        ) : (
+          <div className="grid min-h-dvh place-items-center bg-background px-5 text-center text-[14px] text-secondary-text">{notice ?? "Loading your case"}</div>
+        );
 
-      case "work":
-        return (
-          <ChooseWorkScreen
-            value={draft.workType}
+      case "checks":
+        return workerCase ? (
+          <ChooseChecksScreen
+            workerCase={workerCase}
             language={chip}
             onBack={back}
             onLanguage={openLanguage}
-            onContinue={(workType) => {
-              update({ workType, consentDone: draft.workType === workType ? draft.consentDone : false });
-              go("package");
+            onContinue={async (checks: SelectableCheck[]) => {
+              setWorkerCase(await workerCaseApi.selectChecks(checks));
+              go("case-consent");
+            }}
+          />
+        ) : null;
+
+      case "case-consent":
+        return workerCase ? (
+          <CaseConsentScreen
+            workerCase={workerCase}
+            language={chip}
+            onBack={back}
+            onLanguage={openLanguage}
+            onAgree={async (items) => {
+              setWorkerCase(await workerCaseApi.consent(items));
+              go("home", { replace: true });
+            }}
+          />
+        ) : null;
+
+      case "details":
+        return workerCase ? (
+          <DetailsScreen
+            workerCase={workerCase}
+            language={chip}
+            onBack={back}
+            onLanguage={openLanguage}
+            onSave={async (details) => {
+              setWorkerCase(await workerCaseApi.saveDetails(details));
+              // Explicit, not history.back(): returning from Aadhaar reloads the page and resets history.
+              go("home", { replace: true });
+            }}
+          />
+        ) : null;
+
+      case "check-form":
+        return draft.formCheck ? (
+          <CheckFormScreen
+            key={draft.formCheck}
+            check={draft.formCheck}
+            language={chip}
+            onBack={back}
+            onLanguage={openLanguage}
+            onSubmit={async (input) => {
+              setWorkerCase(await workerCaseApi.submitCheck(draft.formCheck!, input));
+              // Explicit, not history.back(): returning from Aadhaar reloads the page and resets history.
+              go("home", { replace: true });
+            }}
+          />
+        ) : null;
+
+      case "selfie":
+        return (
+          <SelfieScreen
+            language={chip}
+            onBack={back}
+            onLanguage={openLanguage}
+            onSubmit={async (file) => {
+              setWorkerCase(await workerCaseApi.submitSelfie(file));
+              // Explicit, not history.back(): returning from Aadhaar reloads the page and resets history.
+              go("home", { replace: true });
             }}
           />
         );
-
-      case "package":
-        return draft.workType ? (
-          <PackageScreen workType={draft.workType} language={chip} onBack={back} onLanguage={openLanguage} onOtherPackages={back} onChoose={() => go("consent")} />
-        ) : null;
-
-      case "consent":
-        return draft.worker ? (
-          <ConsentScreen
-            language={chip}
-            onBack={back}
-            onLanguage={openLanguage}
-            onAgree={async (records) => {
-              await service.recordConsent(draft.worker!.applicationId, records);
-              update({ consentDone: true });
-              go("home");
-            }}
-          />
-        ) : null;
     }
   }
 

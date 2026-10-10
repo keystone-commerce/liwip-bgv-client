@@ -10,8 +10,8 @@ import { CheckBar, BgvCard } from "./bgv-card";
 import { Body, Footer, Icon, Kicker, LanguageChip, NumberedStep, PrimaryAction, Screen, SecondaryAction, TextAction, TopBar } from "./shell";
 
 const ENTRY_STEPS = [
-  { title: "Pick your work", detail: "We match the checks platforms ask for" },
-  { title: "Share from DigiLocker", detail: "No typing for most people" },
+  { title: "Choose what to verify", detail: "Aadhaar, PAN, licence and more. Skip what you do not have" },
+  { title: "Verify each one", detail: "Aadhaar OTP first, then a few numbers" },
   { title: "Keep your Liwip BGV Card", detail: "Reuse it for 12 months" }
 ];
 

@@ -2,7 +2,7 @@ import { cookies } from "next/headers";
 import { NextResponse } from "next/server";
 import { z } from "zod";
 import { BackendError, backendFetch, readBackendResponse } from "@/lib/backend";
-import { createWorkerSession } from "@/lib/session";
+import { WORKER_TOKEN_COOKIE, createWorkerSession } from "@/lib/session";
 
 const schema = z.object({
   phone: z.string().regex(/^\d{10}$/),
@@ -23,7 +23,7 @@ export async function POST(request: Request) {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(parsed.data)
     });
-    const result = await readBackendResponse(response) as { verified?: boolean };
+    const result = await readBackendResponse(response) as { verified?: boolean; workerToken?: string; workerTokenExpiresAt?: number };
     if (!result.verified) return NextResponse.json({ message: "OTP verification was not confirmed" }, { status: 401 });
 
     const jar = await cookies();
@@ -34,6 +34,11 @@ export async function POST(request: Request) {
       maxAge: 12 * 60 * 60,
       path: "/"
     });
+    // The backend's proof of OTP for this phone. Only server routes read it; the browser never sees it.
+    if (result.workerToken) {
+      const seconds = Math.floor(((result.workerTokenExpiresAt ?? Date.now() + 12 * 3600_000) - Date.now()) / 1000);
+      jar.set(WORKER_TOKEN_COOKIE, result.workerToken, { httpOnly: true, sameSite: "lax", secure: isProduction(), maxAge: Math.max(60, seconds), path: "/api/worker" });
+    }
     return NextResponse.json({ success: true, verified: true });
   } catch (error) {
     const status = error instanceof BackendError ? error.status : 503;
