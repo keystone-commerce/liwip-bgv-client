@@ -160,7 +160,7 @@ export function CaseConsentScreen({
 
 /* Worker home: the real case ------------------------------------------------ */
 
-type NextAction = { title: string; detail: string; label: string; run: () => void; alternative?: { label: string; run: () => void } };
+type NextAction = { title: string; detail: string; label: string; run: () => void };
 
 export function CaseHomeScreen({
   worker,
@@ -191,7 +191,10 @@ export function CaseHomeScreen({
   const rows = chosenChecks(workerCase);
   const verified = rows.filter((row) => row.state === "verified").length;
   const name = workerCase.details.fullName || worker.fullName;
-  const needsDetails = !workerCase.details.fullName && !workerCase.selectedChecks.includes("AADHAAR");
+  const aadhaarChosen = workerCase.selectedChecks.includes("AADHAAR");
+  // A chosen Aadhaar comes first: the other checks are matched to the name and photo it returns.
+  const aadhaarPending = aadhaarChosen && workerCase.identity?.status !== "VERIFIED";
+  const needsDetails = !aadhaarChosen && (!workerCase.details.fullName || !workerCase.details.dateOfBirth);
 
   function actionFor(check: SelectableCheck) {
     if (check === "AADHAAR") return onAadhaar;
@@ -205,16 +208,9 @@ export function CaseHomeScreen({
     }
     if (workerCase.status === "DRAFT") return { title: "Approve your checks", detail: "Say yes to each check before it runs.", label: "Start", run: onConsent };
     const aadhaar = rows.find((row) => row.check === "AADHAAR" && (row.needsInput || row.canResubmit));
-    // Once Aadhaar is skipped (name and DOB typed), lead with the other checks; Aadhaar stays in its row.
-    const skippedAadhaar = Boolean(aadhaar && workerCase.details.dateOfBirth && workerCase.details.source !== "AADHAAR");
-    const nextOther = rows.find((row) => row.check !== "AADHAAR" && (row.needsInput || row.canResubmit));
-    if (aadhaar && !(skippedAadhaar && nextOther)) {
-      // Aadhaar can be unavailable; the other checks can still run against the typed name and date of birth.
-      const skip = !workerCase.details.dateOfBirth ? { label: "Skip Aadhaar for now, add date of birth", run: onDetails } : undefined;
-      return { title: "Verify your Aadhaar", detail: "Aadhaar OTP on the official page. Your name and photo come from here.", label: "Open Aadhaar", run: onAadhaar, alternative: skip };
-    }
-    if (needsDetails) return { title: "Add your name and date of birth", detail: "As printed on your ID. Checks are matched to it.", label: "Add details", run: onDetails };
-    const open = nextOther ?? rows.find((row) => row.needsInput || row.canResubmit);
+    if (aadhaar) return { title: "Verify your Aadhaar", detail: "In the official Aadhaar app. Your other checks are matched to the name and photo it returns.", label: "Open Aadhaar", run: onAadhaar };
+    if (needsDetails) return { title: "Add your date of birth", detail: "As printed on your ID. Checks are matched to your name and date of birth.", label: "Add details", run: onDetails };
+    const open = rows.find((row) => row.needsInput || row.canResubmit);
     if (open) {
       return {
         title: open.check === "FACE" ? (open.canResubmit ? "Take your selfie again" : "Take a selfie") : `${open.canResubmit ? "Fix" : "Add"} your ${CHECK_INFO[open.check].title}`,
@@ -260,7 +256,9 @@ export function CaseHomeScreen({
                 <li key={row.check} className="border-b border-line-soft py-[9px] last:border-b-0">
                   <div className="flex items-center justify-between gap-2.5">
                     <span className="text-[13.5px]">{CHECK_INFO[row.check].title}</span>
-                    {row.needsInput ? (
+                    {row.needsInput && aadhaarPending && row.check !== "AADHAAR" ? (
+                      <StateBadge state="queued" label="After Aadhaar" className="shrink-0" />
+                    ) : row.needsInput ? (
                       <button type="button" onClick={actionFor(row.check)} className="label-mono min-h-11 px-1 text-[11px] tracking-[0.1em] text-accent-foreground hover:underline">
                         Add
                       </button>
@@ -304,14 +302,14 @@ export function CaseHomeScreen({
       </main>
       {next ? (
         // The next step is pinned so its action is always in reach; the checks above scroll.
-        <footer className="flex-none border-t border-border bg-background px-5 pt-3 pb-[max(14px,env(safe-area-inset-bottom))]">
-          <Kicker className="mb-1.5 tracking-[0.12em]">Your next step</Kicker>
+        // Inverted so the whole next step stands out, not only its button.
+        <footer className="flex-none bg-primary px-5 pt-3.5 pb-[max(14px,env(safe-area-inset-bottom))] text-primary-foreground">
+          <Kicker className="mb-1.5 tracking-[0.12em] text-primary-foreground">Your next step</Kicker>
           <h2 className="mt-0 mb-0.5 text-[17px] font-medium tracking-[-0.015em]">{next.title}</h2>
-          <p className="mt-0 mb-3 line-clamp-2 text-[13px] leading-[1.5] text-secondary-text">{next.detail}</p>
-          <Button onClick={next.run} className="h-[52px] w-full justify-between px-4">
+          <p className="mt-0 mb-3 line-clamp-2 text-[13px] leading-[1.5] text-primary-foreground/85">{next.detail}</p>
+          <Button onClick={next.run} className="h-[52px] w-full justify-between bg-background px-4 text-foreground hover:bg-paper focus-visible:outline-background">
             {next.label} <Icon icon={ArrowRight} size={13} strokeWidth={2.4} />
           </Button>
-          {next.alternative && <TextAction onClick={next.alternative.run} className="mt-0.5">{next.alternative.label}</TextAction>}
         </footer>
       ) : (
         <footer className="flex flex-none items-center gap-2 border-t border-border bg-background px-5 pt-3 pb-[max(16px,env(safe-area-inset-bottom))] text-[13px] text-secondary-text">
@@ -515,7 +513,7 @@ export function DetailsScreen({
   const [dateOfBirth, setDateOfBirth] = useState(workerCase.details.dateOfBirth ?? "");
   const [fatherName, setFatherName] = useState(workerCase.details.fatherName ?? "");
   const [address, setAddress] = useState(workerCase.details.address ?? "");
-  const askName = !fromAadhaar;
+  const askName = !fromAadhaar && !workerCase.selectedChecks.includes("AADHAAR");
   const askFather = court && !workerCase.details.fatherName;
   const askAddress = court && !workerCase.details.address;
 
