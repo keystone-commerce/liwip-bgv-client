@@ -149,28 +149,42 @@ function QrArea({ card, live, offline, qrSize, large }: { card: CardView; live?:
       </QrBox>
     );
   } else {
+    const bar = (
+      <span
+        role="progressbar"
+        aria-label="Time until the QR changes"
+        aria-valuemin={0}
+        aria-valuemax={100}
+        aria-valuenow={Math.round(live.fraction * 100)}
+        className={cn("block h-0.5 bg-track", !large && "min-w-0 flex-1")}
+        style={large ? { width: qrSize } : undefined}
+      >
+        <span className="block h-0.5 bg-primary" style={{ width: `${live.fraction * 100}%` }} />
+      </span>
+    );
     return (
-      <div className="flex flex-col items-center" style={{ width }}>
+      <div className="flex flex-none flex-col items-center" style={{ width }}>
         <QrCode value={qrPayload(live.token, origin)} size={qrSize} quietZone={large ? 4 : 2} />
-        <span className={cn("tabular mt-1.5 font-mono font-medium whitespace-nowrap uppercase", large ? "text-[12px] tracking-[0.11em]" : "text-[11px] tracking-[0.06em]")}>
-          New code {formatCountdown(live.secondsLeft)}
-        </span>
-        <span
-          role="progressbar"
-          aria-label="Time until the QR changes"
-          aria-valuemin={0}
-          aria-valuemax={100}
-          aria-valuenow={Math.round(live.fraction * 100)}
-          className="mt-1 block h-0.5 bg-track"
-          style={{ width: qrSize }}
-        >
-          <span className="block h-0.5 bg-primary" style={{ width: `${live.fraction * 100}%` }} />
-        </span>
+        {large ? (
+          <>
+            <span className="tabular mt-2.5 font-mono text-[12px] font-medium tracking-[0.11em] whitespace-nowrap uppercase">New code {formatCountdown(live.secondsLeft)}</span>
+            <span className="mt-1.5">{bar}</span>
+          </>
+        ) : (
+          // Compact: the timer line and the time share one row, exactly as wide as the QR.
+          <span className="mt-2 flex w-full items-center gap-1.5" title="New code in">
+            {bar}
+            <span className="tabular flex-none font-mono text-[10.5px] leading-none font-medium tracking-[0.04em]">
+              <span className="sr-only">New code in </span>
+              {formatCountdown(live.secondsLeft)}
+            </span>
+          </span>
+        )}
       </div>
     );
   }
   return (
-    <div className="flex flex-col items-center" style={{ width }}>
+    <div className="flex flex-none flex-col items-center" style={{ width }}>
       {content}
     </div>
   );
@@ -224,10 +238,12 @@ export function DigitalCard({
   const footTone = card.issued && card.status === "expired" ? "text-state-fix" : card.issued && card.status === "expiring" ? "text-state-review" : undefined;
 
   const holder = (
-    <div className="flex min-w-0 flex-1 flex-col">
-      <p className={cn("m-0 font-medium tracking-[-0.012em] break-words", large ? "text-[19px] leading-[1.2]" : "text-[17px] leading-[1.2]", !card.name && "text-secondary-text")}>{name}</p>
-      <p className="mt-0.5 mb-0 text-[12.5px] text-secondary-text">{preview ? "Background check in progress" : "Background verified"}</p>
-      <div className="mt-2.5 flex">
+    <div className="flex min-w-0 flex-1 flex-col justify-between gap-2">
+      <div className="min-w-0">
+        <p className={cn("-mt-[3px] mb-0 font-medium tracking-[-0.012em] break-words", large ? "text-[19px] leading-[1.2]" : "text-[17px] leading-[1.2]", !card.name && "text-secondary-text")}>{name}</p>
+        <p className="mt-1 mb-0 text-[12.5px] leading-[1.35] text-secondary-text">{preview ? "Background check in progress" : "Background verified"}</p>
+      </div>
+      <div className="flex">
         {badge ? (
           <StateBadge state={badge.state} label={badge.label} className="h-auto whitespace-normal text-left" />
         ) : (
@@ -240,10 +256,10 @@ export function DigitalCard({
   return (
     <section
       aria-label={preview ? "Liwip BGV Card preview, not issued" : "Liwip BGV Card"}
-      className={cn("relative flex w-full flex-col overflow-hidden bg-background", preview ? "border border-dashed border-muted-foreground" : "border border-foreground", className)}
+      className={cn("relative flex w-full flex-none flex-col overflow-hidden bg-background", preview ? "border border-dashed border-muted-foreground" : "border border-foreground", className)}
     >
       {preview ? (
-        <div className="flex h-8 flex-none items-center justify-between border-b border-border bg-[#F3F3F5] px-3 text-secondary-text">
+        <div className="flex h-8 flex-none items-center justify-between border-b border-border bg-[#F3F3F5] px-3.5 text-secondary-text">
           <span className="flex items-center gap-2">
             <Icon icon={Lock} size={11} strokeWidth={2.4} />
             <span className="label-mono tracking-[0.12em]">Card preview</span>
@@ -251,7 +267,7 @@ export function DigitalCard({
           <span className="label-mono">Not issued</span>
         </div>
       ) : (
-        <div className="flex h-8 flex-none items-center justify-between gap-3 bg-foreground px-3 text-white">
+        <div className="flex h-8 flex-none items-center justify-between gap-3 bg-foreground px-3.5 text-white">
           <span className="flex flex-none items-center gap-2">
             <span aria-hidden="true" className="size-[9px] bg-primary" />
             <span className="label-mono tracking-[0.12em]">Liwip BGV Card</span>
@@ -269,19 +285,20 @@ export function DigitalCard({
             <CardPhoto hasPhoto={card.hasPhoto} version={version} className="w-[72px]" />
             {holder}
           </div>
-          <div className="flex justify-center border-t border-line-soft px-3.5 pt-4 pb-3.5">
+          <div className="flex justify-center border-t border-line-soft px-3.5 pt-5 pb-4">
             <QrArea card={card} live={live} offline={offline} qrSize={176} large />
           </div>
         </>
       ) : (
-        <div className="flex gap-3 p-3">
-          <CardPhoto hasPhoto={card.hasPhoto} version={version} className="w-[58px]" />
+        // Photo (68 × 91) and QR block (70 + timer row) are the same height, so the row reads as one band.
+        <div className="flex items-stretch gap-3 p-3.5">
+          <CardPhoto hasPhoto={card.hasPhoto} version={version} className="w-[68px] self-start" />
           {holder}
-          <QrArea card={card} live={live} offline={offline} qrSize={76} large={false} />
+          <QrArea card={card} live={live} offline={offline} qrSize={70} large={false} />
         </div>
       )}
 
-      <div className="tabular mt-auto flex min-h-[30px] flex-none items-center justify-between gap-3 border-t border-line-soft px-3 py-1.5 font-mono text-[11px] font-medium tracking-[0.06em] uppercase">
+      <div className="tabular mt-auto flex min-h-[32px] flex-none items-center justify-between gap-3 border-t border-line-soft px-3.5 py-1.5 font-mono text-[11px] font-medium tracking-[0.06em] uppercase">
         <span>{footLeft}</span>
         <span className={cn("text-right", footTone)}>{footRight}</span>
       </div>
