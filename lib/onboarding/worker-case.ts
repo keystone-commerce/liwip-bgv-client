@@ -31,7 +31,7 @@ export interface WorkerCase {
 }
 
 export const CHECK_INFO: Record<SelectableCheck, { title: string; detail: string; types: string[] }> = {
-  AADHAAR: { title: "Aadhaar", detail: "Aadhaar OTP. Gives your name, date of birth and photo.", types: ["AADHAAR"] },
+  AADHAAR: { title: "Aadhaar", detail: "Through DigiLocker. Gives your name, date of birth and photo.", types: ["AADHAAR"] },
   PAN: { title: "PAN card", detail: "Your 10-character PAN.", types: ["PAN"] },
   FACE: { title: "Selfie match", detail: "A selfie matched to your Aadhaar photo.", types: ["FACE_LIVENESS", "FACE_MATCH"] },
   DRIVING_LICENSE: { title: "Driving licence", detail: "Licence number. Checks it is valid.", types: ["DRIVING_LICENSE"] },
@@ -86,17 +86,6 @@ export function chosenChecks(workerCase: WorkerCase) {
   });
 }
 
-/**
- * Opens the official Aadhaar (Pehchaan) app with the signed request, the same way
- * Surepass's hosted launcher does. Null where the app cannot run (desktop).
- */
-export function aadhaarAppUrl(intentData: string): string | null {
-  const agent = navigator.userAgent;
-  if (/Android/i.test(agent)) return `intent:#Intent;action=in.gov.uidai.pehchaan.WEB_INTENT_REQUEST;S.request=${intentData};end`;
-  const iOS = /iPhone|iPad|iPod/i.test(agent) || (/Macintosh/i.test(agent) && navigator.maxTouchPoints > 1);
-  return iOS ? `pehchaan://in.gov.uidai.pehchaan?req=${encodeURIComponent(intentData)}` : null;
-}
-
 export class CaseError extends Error {
   constructor(public readonly status: number, message: string) {
     super(message);
@@ -122,7 +111,6 @@ export const workerCaseApi = {
   selectChecks: (checks: SelectableCheck[]) => request<WorkerCase>("/checks", json("PUT", { checks })),
   consent: (items: string[]) => request<WorkerCase>("/consent", json("POST", { textVersion: CASE_CONSENT_VERSION, items })),
   saveDetails: (details: { fullName?: string; dateOfBirth?: string; fatherName?: string; address?: string }) => request<WorkerCase>("/details", json("PUT", details)),
-  startAadhaar: () => request<{ url: string; intentData: string | null }>("/identity/aadhaar/start", json("POST")),
   startDigiLocker: () => request<{ url: string }>("/identity/digilocker/start", json("POST")),
   addChecks: (checks: SelectableCheck[], items: string[]) => request<WorkerCase>("/checks/add", json("POST", { checks, textVersion: CASE_CONSENT_VERSION, items })),
   completeAadhaar: () => request<WorkerCase>("/identity/aadhaar/complete", json("POST")),

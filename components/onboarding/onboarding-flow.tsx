@@ -5,7 +5,7 @@ import { AnimatePresence, motion, useReducedMotion } from "motion/react";
 import { type LanguageCode, LANGUAGES } from "@/lib/onboarding/data";
 import { apiOnboardingService, canUseQuickSignIn, type OnboardingService, type ReturningWorker, type WorkerProfile } from "@/lib/onboarding/service";
 import { CardError, fetchCard, reissueCard, type CardView } from "@/lib/onboarding/card";
-import { CaseError, aadhaarAppUrl, workerCaseApi, type SelectableCheck, type WorkerCase } from "@/lib/onboarding/worker-case";
+import { CaseError, workerCaseApi, type SelectableCheck, type WorkerCase } from "@/lib/onboarding/worker-case";
 import { HELP_URL } from "@/lib/onboarding/data";
 import { CardReveal } from "./card-reveal";
 import { CardChecksScreen, CardHomeScreen, CardScreen, CardSoFarScreen, LargeQrScreen, ReissueScreen } from "./card-screens";
@@ -303,30 +303,9 @@ export function OnboardingFlow({
     return () => window.clearInterval(timer);
   }, [screen, running, inReview]);
 
-  const startAadhaar = useCallback(async () => {
-    setNotice(null);
-    try {
-      const { url, intentData } = await workerCaseApi.startAadhaar();
-      const appUrl = intentData ? aadhaarAppUrl(intentData) : null;
-      if (appUrl) {
-        // The Aadhaar app opens over this page; home checks the result when the worker comes back.
-        setNotice(null);
-        setInfo("Finish in the Aadhaar app, then come back here. Your result appears on its own.");
-        window.location.assign(appUrl);
-      } else if (!intentData) {
-        window.location.assign(url);
-      } else {
-        setInfo("The Aadhaar app needs a phone. Use DigiLocker here, or open this page on your phone.");
-      }
-    } catch (failure) {
-      setNotice(failure instanceof Error ? failure.message : "Aadhaar could not be opened. Try again.");
-    }
-  }, []);
-
   const caseActions: CaseActions = {
     onChooseChecks: () => go("checks"),
     onConsent: () => go("case-consent"),
-    onAadhaar: startAadhaar,
     onDigiLocker: startDigiLocker,
     onDetails: () => go("details"),
     onName: () => go("name"),

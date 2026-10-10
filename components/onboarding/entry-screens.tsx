@@ -11,7 +11,7 @@ import { Body, ErrorBanner, Footer, Icon, Kicker, LanguageChip, NumberedStep, Pr
 
 const ENTRY_STEPS = [
   { title: "Choose what to verify", detail: "Aadhaar, PAN, licence and more. Skip what you do not have" },
-  { title: "Verify each one", detail: "Aadhaar OTP first, then a few numbers" },
+  { title: "Verify each one", detail: "Aadhaar through DigiLocker first, then a few numbers" },
   { title: "Keep your Liwip BGV Card", detail: "Reuse it for 12 months" }
 ];
 
